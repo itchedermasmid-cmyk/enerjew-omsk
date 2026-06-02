@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useParticipant } from '@/lib/participantAuth.jsx';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';

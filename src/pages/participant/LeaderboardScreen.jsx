@@ -7,7 +7,7 @@ import BottomNav from '@/components/participant/BottomNav';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Trophy, Flame, Star, TrendingUp, Medal } from 'lucide-react';
+import { Trophy, Flame, Star, TrendingUp } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export default function LeaderboardScreen() {

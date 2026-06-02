@@ -2,22 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useParticipant } from '@/lib/participantAuth.jsx';
 import { isMitzvahEligibleForGender } from '@/lib/campaign';
+import { getMitzvahIcon } from '@/lib/mitzvahCatalog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Star, ChevronRight, Check, Sparkles } from 'lucide-react';
-
-const MITZVAH_ICONS = {
-  'Тфилин': '🤲',
-  'Шаббатние свечи': '🕯️',
-  'Модэ Ани утром': '🌅',
-  'Омовение рук утром': '💧',
-  'Утренний Шма': '📖',
-  'Ночной Шма': '🌙',
-  'Давенинг / молитва': '🙏',
-  'Изучение Торы': '📜',
-  'Браха перед едой': '🍞'
-};
 
 export default function Onboarding() {
   const { participant, refresh } = useParticipant();
@@ -105,7 +94,7 @@ export default function Onboarding() {
                   >
                     <CardContent className="p-4 flex items-center gap-4">
                       <span className="text-2xl">
-                        {MITZVAH_ICONS[m.name_ru] || '✡️'}
+                        {getMitzvahIcon(m)}
                       </span>
                       <div className="flex-1">
                         <p className="font-semibold">{m.name_ru}</p>
@@ -142,7 +131,7 @@ export default function Onboarding() {
               className="text-center"
             >
               <div className="w-20 h-20 mx-auto mb-6 bg-primary/10 rounded-full flex items-center justify-center">
-                <span className="text-4xl">{MITZVAH_ICONS[selected.name_ru] || '✡️'}</span>
+                <span className="text-4xl">{getMitzvahIcon(selected)}</span>
               </div>
               <h2 className="text-2xl font-display font-bold mb-2">Подтверждение</h2>
               <p className="text-muted-foreground mb-6">

@@ -110,6 +110,22 @@ export default function AdminMitzvahs() {
                 </SelectContent>
               </Select>
             </div>
+            <div>
+              <Label>Исключённые даты</Label>
+              <Textarea
+                placeholder="По одной дате в строке: 2026-06-20"
+                value={(formData.excluded_dates || []).join('\n')}
+                onChange={e => setFormData({...formData, excluded_dates: e.target.value.split(/\s+/).filter(Boolean)})}
+              />
+            </div>
+            <div>
+              <Label>Дополнительные даты</Label>
+              <Textarea
+                placeholder="По одной дате в строке: 2026-06-21"
+                value={(formData.additional_eligible_dates || []).join('\n')}
+                onChange={e => setFormData({...formData, additional_eligible_dates: e.target.value.split(/\s+/).filter(Boolean)})}
+              />
+            </div>
             <div className="flex items-center justify-between">
               <Label>Активна</Label>
               <Switch checked={formData.is_active !== false} onCheckedChange={v => setFormData({...formData, is_active: v})} />

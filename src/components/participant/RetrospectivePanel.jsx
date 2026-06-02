@@ -1,16 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useParticipant } from '@/lib/participantAuth.jsx';
-import { canSubmitRetrospective, formatDateRu } from '@/lib/campaign';
+import { canSubmitRetrospective, formatDateRu, getOmskDate, isMitzvahEligibleOnDate, parseOmskDateTime } from '@/lib/campaign';
+import { recalculateParticipantStats } from '@/lib/participantStats';
+import { assertParticipantActionsOpen } from '@/lib/participantActions';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Clock, Check } from 'lucide-react';
+import { toast } from 'sonner';
 
 export default function RetrospectivePanel() {
-  const { participant } = useParticipant();
+  const { participant, refresh } = useParticipant();
   const [periods, setPeriods] = useState([]);
   const [retroCheckins, setRetroCheckins] = useState([]);
   const [submitting, setSubmitting] = useState(null);
+  const [mitzvah, setMitzvah] = useState(null);
 
   useEffect(() => {
     loadData();
@@ -18,16 +22,20 @@ export default function RetrospectivePanel() {
 
   const loadData = async () => {
     if (!participant) return;
-    const allPeriods = await base44.entities.ClosurePeriod.list('-end_time', 5);
+    const [allPeriods, mitzvahs] = await Promise.all([
+      base44.entities.ClosurePeriod.list('-end_time', 5),
+      base44.entities.Mitzvah.filter({ id: participant.main_mitzvah_id }),
+    ]);
     const now = new Date();
     
     // Find recently ended closure periods that allow retrospective
     const eligible = allPeriods.filter(p => {
-      const endTime = new Date(p.end_time);
+      const endTime = parseOmskDateTime(p.end_time);
       return endTime < now && canSubmitRetrospective(p);
     });
     
     setPeriods(eligible);
+    setMitzvah(mitzvahs[0] || null);
 
     if (eligible.length > 0) {
       const checkins = await base44.entities.MainCheckIn.filter({
@@ -41,26 +49,34 @@ export default function RetrospectivePanel() {
   const handleRetroCheckin = async (dateStr) => {
     if (!participant?.main_mitzvah_id) return;
     setSubmitting(dateStr);
-    
-    // Check for duplicate
-    const existing = await base44.entities.MainCheckIn.filter({
-      participant_id: participant.id,
-      eligible_date: dateStr,
-      is_valid: true
-    });
-    
-    if (existing.length === 0) {
-      await base44.entities.MainCheckIn.create({
+    try {
+      await assertParticipantActionsOpen(dateStr);
+
+      // Check for duplicate
+      const existing = await base44.entities.MainCheckIn.filter({
         participant_id: participant.id,
-        mitzvah_id: participant.main_mitzvah_id,
         eligible_date: dateStr,
-        is_retrospective: true,
-        source: 'participant'
+        is_valid: true
       });
+
+      if (existing.length === 0) {
+        await base44.entities.MainCheckIn.create({
+          participant_id: participant.id,
+          mitzvah_id: participant.main_mitzvah_id,
+          eligible_date: dateStr,
+          is_retrospective: true,
+          source: 'participant'
+        });
+      }
+
+      await recalculateParticipantStats(participant, mitzvah);
+      await refresh();
+      await loadData();
+    } catch (error) {
+      toast.error(error.message || 'Не удалось сохранить отметку');
+    } finally {
+      setSubmitting(null);
     }
-    
-    await loadData();
-    setSubmitting(null);
   };
 
   if (periods.length === 0) return null;
@@ -68,12 +84,13 @@ export default function RetrospectivePanel() {
   // Get the Shabbos dates (Friday, Saturday) from closure periods
   const retroDates = [];
   periods.forEach(period => {
-    const start = new Date(period.start_time);
-    const end = new Date(period.end_time);
+    const start = parseOmskDateTime(period.start_time);
+    const end = parseOmskDateTime(period.end_time);
     const current = new Date(start);
     while (current <= end) {
+      const date = getOmskDate(current);
       retroDates.push({
-        date: current.toISOString().split('T')[0],
+        date,
         period
       });
       current.setDate(current.getDate() + 1);
@@ -81,7 +98,11 @@ export default function RetrospectivePanel() {
   });
 
   const submittedDates = new Set(retroCheckins.map(c => c.eligible_date));
-  const pendingDates = retroDates.filter(d => !submittedDates.has(d.date));
+  const pendingDates = retroDates.filter((item, index) =>
+    isMitzvahEligibleOnDate(mitzvah, item.date) &&
+    !submittedDates.has(item.date) &&
+    retroDates.findIndex(other => other.date === item.date) === index
+  );
 
   if (pendingDates.length === 0) return null;
 

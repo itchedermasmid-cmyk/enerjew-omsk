@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Link } from 'react-router-dom';
-import { getProgressLevelName } from '@/lib/campaign';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,8 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { 
-  Users, Plus, Search, Edit, RotateCcw, ChevronLeft, Star,
-  UserCheck, UserX, Target, Flame
+  Plus, Search, Edit, RotateCcw, ChevronLeft, Star, Target, Flame
 } from 'lucide-react';
 import { toast } from 'sonner';
 

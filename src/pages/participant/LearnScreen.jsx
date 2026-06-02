@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useParticipant } from '@/lib/participantAuth.jsx';
 import { getOmskDate } from '@/lib/campaign';
+import { getCampaignSetting, recalculateParticipantStats } from '@/lib/participantStats';
+import { assertParticipantActionsOpen } from '@/lib/participantActions';
 import ParticipantHeader from '@/components/participant/ParticipantHeader';
 import BottomNav from '@/components/participant/BottomNav';
 import { Card, CardContent } from '@/components/ui/card';
@@ -10,6 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { BookOpen, Check, ChevronRight, Calendar, ExternalLink } from 'lucide-react';
 import { motion } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
+import { toast } from 'sonner';
 
 export default function LearnScreen() {
   const { participant, refresh } = useParticipant();
@@ -44,66 +47,77 @@ export default function LearnScreen() {
   const handleComplete = async (item) => {
     if (completedIds.has(item.id) || submitting) return;
     setSubmitting(true);
-    
-    // Determine credit type
-    // Find the Torah learning mitzvah
-    const mitzvahs = await base44.entities.Mitzvah.filter({ is_active: true });
-    const torahMitzvah = mitzvahs.find(m => m.name_ru === 'Изучение Торы');
-    
-    let creditAs = 'read_only';
-    
-    if (torahMitzvah && participant.main_mitzvah_id === torahMitzvah.id) {
-      // Check if they already have a main check-in today
-      const existingMain = await base44.entities.MainCheckIn.filter({
-        participant_id: participant.id, eligible_date: item.date, is_valid: true
-      });
-      if (existingMain.length === 0) {
-        creditAs = 'main';
-        // Create main check-in
-        await base44.entities.MainCheckIn.create({
-          participant_id: participant.id,
-          mitzvah_id: torahMitzvah.id,
-          eligible_date: item.date,
-          source: 'torah_completion'
+    try {
+      await assertParticipantActionsOpen(item.date);
+
+      // Determine credit type
+      // Find the Torah learning mitzvah
+      const mitzvahs = await base44.entities.Mitzvah.filter({ is_active: true });
+      const torahMitzvah = mitzvahs.find(m => m.name_ru === 'Изучение Торы');
+
+      let creditAs = 'read_only';
+
+      if (item.date === today && torahMitzvah && participant.main_mitzvah_id === torahMitzvah.id) {
+        // Check if they already have a main check-in today
+        const existingMain = await base44.entities.MainCheckIn.filter({
+          participant_id: participant.id, eligible_date: item.date, is_valid: true
         });
+        if (existingMain.length === 0) {
+          creditAs = 'main';
+          // Create main check-in
+          await base44.entities.MainCheckIn.create({
+            participant_id: participant.id,
+            mitzvah_id: torahMitzvah.id,
+            eligible_date: item.date,
+            source: 'torah_completion'
+          });
+        }
+      } else if (item.date === today && torahMitzvah) {
+        const [existingBonus, todayBonuses, maxDailyBonus] = await Promise.all([
+          base44.entities.BonusCheckIn.filter({
+            participant_id: participant.id, mitzvah_id: torahMitzvah.id,
+            eligible_date: item.date, is_valid: true
+          }),
+          base44.entities.BonusCheckIn.filter({
+            participant_id: participant.id, eligible_date: item.date, is_valid: true
+          }),
+          getCampaignSetting('max_daily_bonus'),
+        ]);
+        if (existingBonus.length === 0 && todayBonuses.length < Number(maxDailyBonus)) {
+          creditAs = 'bonus';
+          await base44.entities.BonusCheckIn.create({
+            participant_id: participant.id,
+            mitzvah_id: torahMitzvah.id,
+            eligible_date: item.date,
+            stars_awarded: 1,
+            source: 'torah_completion'
+          });
+        }
       }
-    } else if (torahMitzvah) {
-      // Check if they already have a bonus for Torah today
-      const existingBonus = await base44.entities.BonusCheckIn.filter({
-        participant_id: participant.id, mitzvah_id: torahMitzvah.id,
-        eligible_date: item.date, is_valid: true
+
+      await base44.entities.TorahCompletion.create({
+        participant_id: participant.id,
+        torah_id: item.id,
+        completion_date: item.date,
+        credited_as: creditAs
       });
-      // Check daily bonus limit
-      const todayBonuses = await base44.entities.BonusCheckIn.filter({
-        participant_id: participant.id, eligible_date: item.date, is_valid: true
-      });
-      if (existingBonus.length === 0 && todayBonuses.length < 3) {
-        creditAs = 'bonus';
-        await base44.entities.BonusCheckIn.create({
-          participant_id: participant.id,
-          mitzvah_id: torahMitzvah.id,
-          eligible_date: item.date,
-          stars_awarded: 1,
-          source: 'torah_completion'
-        });
-      }
+
+      await recalculateParticipantStats(
+        participant,
+        participant.main_mitzvah_id === torahMitzvah?.id ? torahMitzvah : null
+      );
+      await refresh();
+      await loadData();
+    } catch (error) {
+      toast.error(error.message || 'Не удалось сохранить отметку');
+    } finally {
+      setSubmitting(false);
     }
-
-    await base44.entities.TorahCompletion.create({
-      participant_id: participant.id,
-      torah_id: item.id,
-      completion_date: item.date,
-      credited_as: creditAs
-    });
-
-    await refresh();
-    await loadData();
-    setSubmitting(false);
   };
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      <ParticipantHeader title="Ежедневная Тора" />
+      <ParticipantHeader title="Урок дня" />
       
       <div className="max-w-lg mx-auto px-4 py-4 space-y-4">
         {selectedItem ? (
@@ -158,6 +172,18 @@ export default function LearnScreen() {
                   </a>
                 )}
 
+                {selectedItem.file_url && (
+                  <a
+                    href={selectedItem.file_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-4 flex items-center gap-2 text-primary text-sm"
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                    Открыть прикреплённый материал
+                  </a>
+                )}
+
                 {!completedIds.has(selectedItem.id) && (
                   <Button
                     onClick={() => handleComplete(selectedItem)}
@@ -181,8 +207,8 @@ export default function LearnScreen() {
           <>
             <div className="text-center py-2">
               <BookOpen className="w-8 h-8 text-primary mx-auto mb-2" />
-              <h2 className="text-lg font-display font-bold">Ежедневная Тора</h2>
-              <p className="text-sm text-muted-foreground">Учись каждый день</p>
+              <h2 className="text-lg font-display font-bold">Урок дня</h2>
+              <p className="text-sm text-muted-foreground">Новый материал для изучения каждый день</p>
             </div>
 
             {loading ? (
@@ -192,7 +218,8 @@ export default function LearnScreen() {
             ) : torahItems.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 <BookOpen className="w-12 h-12 mx-auto mb-2 opacity-30" />
-                <p>Записи появятся скоро</p>
+                <p className="font-medium text-foreground">Материалы появятся скоро</p>
+                <p className="text-sm mt-1">Наставник добавит ежедневные уроки перед началом кампании.</p>
               </div>
             ) : (
               <div className="space-y-2">

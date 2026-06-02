@@ -8,9 +8,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { Badge } from '@/components/ui/badge';
 import { ChevronLeft, Plus, Edit, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
+import { mergeResources } from '@/lib/resourceContent';
 
 export default function AdminResources() {
   const [resources, setResources] = useState([]);
@@ -22,7 +22,7 @@ export default function AdminResources() {
 
   const loadData = async () => {
     const list = await base44.entities.Resource.list('sort_order', 50);
-    setResources(list);
+    setResources(mergeResources(list));
     setLoading(false);
   };
 
@@ -56,7 +56,7 @@ export default function AdminResources() {
           <div className="space-y-2">{Array(5).fill(0).map((_, i) => <div key={i} className="h-16 bg-muted rounded-xl animate-pulse" />)}</div>
         ) : (
           resources.map(r => (
-            <Card key={r.id} className="cursor-pointer hover:shadow-md" onClick={() => { setFormData({...r}); setEditItem(r); }}>
+            <Card key={r.id || r.slug} className="cursor-pointer hover:shadow-md" onClick={() => { setFormData({...r}); setEditItem(r); }}>
               <CardContent className="p-4 flex items-center gap-3">
                 <div className="flex-1">
                   <p className="font-semibold text-sm">{r.title_ru}</p>
@@ -75,6 +75,7 @@ export default function AdminResources() {
           <DialogHeader><DialogTitle>{editItem?.id ? 'Редактировать ресурс' : 'Новый ресурс'}</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div><Label>Заголовок</Label><Input value={formData.title_ru || ''} onChange={e => setFormData({...formData, title_ru: e.target.value})} /></div>
+            <div><Label>Короткое описание</Label><Input value={formData.short_ru || ''} onChange={e => setFormData({...formData, short_ru: e.target.value})} /></div>
             <div><Label>Основной текст (markdown)</Label><Textarea rows={5} value={formData.content_ru || ''} onChange={e => setFormData({...formData, content_ru: e.target.value})} /></div>
             <div><Label>Текст на иврите</Label><Textarea rows={3} value={formData.hebrew_text || ''} onChange={e => setFormData({...formData, hebrew_text: e.target.value})} className="hebrew-text" /></div>
             <div><Label>Транслитерация</Label><Textarea rows={2} value={formData.transliteration || ''} onChange={e => setFormData({...formData, transliteration: e.target.value})} /></div>

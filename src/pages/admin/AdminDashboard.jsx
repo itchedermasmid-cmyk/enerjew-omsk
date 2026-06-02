@@ -54,7 +54,7 @@ export default function AdminDashboard() {
     { label: 'Мицвот', path: '/admin/mitzvahs', icon: Shield },
     { label: 'Настройки кампании', path: '/admin/settings', icon: Settings },
     { label: 'Расписание Шаббата', path: '/admin/closures', icon: Clock },
-    { label: 'Ежедневная Тора', path: '/admin/torah', icon: BookOpen },
+    { label: 'Урок дня', path: '/admin/torah', icon: BookOpen },
     { label: 'Ресурсы', path: '/admin/resources', icon: FileText },
     { label: 'Значки', path: '/admin/badges', icon: Award },
     { label: 'Журнал действий', path: '/admin/logs', icon: Calendar },

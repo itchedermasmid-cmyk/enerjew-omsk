@@ -27,7 +27,7 @@ export default function AdminTorah() {
   };
 
   const openAdd = () => {
-    setFormData({ date: '', title_ru: '', content_ru: '', title_he: '', status: 'draft', image_url: '', external_link: '' });
+    setFormData({ date: '', title_ru: '', content_ru: '', title_he: '', status: 'draft', image_url: '', file_url: '', external_link: '' });
     setEditItem({});
   };
 
@@ -53,7 +53,7 @@ export default function AdminTorah() {
       <header className="sticky top-0 z-40 bg-card border-b">
         <div className="flex items-center gap-3 px-4 py-3 max-w-4xl mx-auto">
           <Link to="/admin"><Button variant="ghost" size="icon"><ChevronLeft className="w-5 h-5" /></Button></Link>
-          <h1 className="text-lg font-display font-bold flex-1">Ежедневная Тора</h1>
+          <h1 className="text-lg font-display font-bold flex-1">Урок дня</h1>
           <Button size="sm" onClick={openAdd}><Plus className="w-4 h-4 mr-1" />Добавить</Button>
         </div>
       </header>
@@ -88,6 +88,7 @@ export default function AdminTorah() {
             <div><Label>Заголовок (иврит)</Label><Input value={formData.title_he || ''} onChange={e => setFormData({...formData, title_he: e.target.value})} className="hebrew-text" /></div>
             <div><Label>Текст (рус, markdown)</Label><Textarea rows={6} value={formData.content_ru || ''} onChange={e => setFormData({...formData, content_ru: e.target.value})} /></div>
             <div><Label>URL картинки</Label><Input value={formData.image_url || ''} onChange={e => setFormData({...formData, image_url: e.target.value})} /></div>
+            <div><Label>URL файла</Label><Input value={formData.file_url || ''} onChange={e => setFormData({...formData, file_url: e.target.value})} /></div>
             <div><Label>Внешняя ссылка</Label><Input value={formData.external_link || ''} onChange={e => setFormData({...formData, external_link: e.target.value})} /></div>
             <div>
               <Label>Статус</Label>

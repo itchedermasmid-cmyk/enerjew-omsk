@@ -9,6 +9,7 @@ import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { ParticipantAuthProvider } from '@/lib/participantAuth';
 import Logo from '@/components/Logo';
+import ParticipantGate from '@/components/participant/ParticipantGate';
 
 // Auth pages
 import Login from '@/pages/Login';
@@ -17,7 +18,7 @@ import ForgotPassword from '@/pages/ForgotPassword';
 import ResetPassword from '@/pages/ResetPassword';
 
 // Participant pages
-import Home from '@/pages/Home';
+import TodayScreen from '@/pages/participant/TodayScreen';
 import BonusScreen from '@/pages/participant/BonusScreen';
 import ProgressScreen from '@/pages/participant/ProgressScreen';
 import LeaderboardScreen from '@/pages/participant/LeaderboardScreen';
@@ -38,6 +39,7 @@ import AdminLogs from '@/pages/admin/AdminLogs';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
+  const participantPage = (page) => <ParticipantGate>{page}</ParticipantGate>;
 
   if (isLoadingPublicSettings || isLoadingAuth) {
     return (
@@ -63,14 +65,14 @@ const AuthenticatedApp = () => {
     <ParticipantAuthProvider>
       <Routes>
         {/* Public participant routes */}
-        <Route path="/" element={<Home />} />
-        <Route path="/today" element={<Home />} />
-        <Route path="/bonus" element={<BonusScreen />} />
-        <Route path="/progress" element={<ProgressScreen />} />
-        <Route path="/leaderboard" element={<LeaderboardScreen />} />
-        <Route path="/learn" element={<LearnScreen />} />
-        <Route path="/resources" element={<ResourcesScreen />} />
-        <Route path="/profile" element={<ProfileScreen />} />
+        <Route path="/" element={participantPage(<TodayScreen />)} />
+        <Route path="/today" element={participantPage(<TodayScreen />)} />
+        <Route path="/bonus" element={participantPage(<BonusScreen />)} />
+        <Route path="/progress" element={participantPage(<ProgressScreen />)} />
+        <Route path="/leaderboard" element={participantPage(<LeaderboardScreen />)} />
+        <Route path="/learn" element={participantPage(<LearnScreen />)} />
+        <Route path="/resources" element={participantPage(<ResourcesScreen />)} />
+        <Route path="/profile" element={participantPage(<ProfileScreen />)} />
 
         {/* Auth routes for admin */}
         <Route path="/login" element={<Login />} />
