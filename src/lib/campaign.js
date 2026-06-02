@@ -174,7 +174,7 @@ export const MILESTONE_THRESHOLDS = {
 
 export const DEFAULT_SETTINGS = {
   campaign_year: '2026',
-  campaign_start: '2026-06-07',
+  campaign_start: '2026-06-02',
   campaign_end: '2026-08-31',
   timezone: 'Asia/Omsk',
   max_daily_bonus: 3,
