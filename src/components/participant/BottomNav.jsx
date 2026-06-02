@@ -1,13 +1,14 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { CalendarCheck, Star, TrendingUp, Trophy, BookOpen } from 'lucide-react';
+import { CalendarCheck, Star, TrendingUp, Trophy, BookOpen, BookMarked } from 'lucide-react';
 
 const NAV_ITEMS = [
   { path: '/today', label: 'Сегодня', icon: CalendarCheck },
   { path: '/bonus', label: 'Бонус', icon: Star },
   { path: '/progress', label: 'Прогресс', icon: TrendingUp },
   { path: '/leaderboard', label: 'Рейтинг', icon: Trophy },
-  { path: '/learn', label: 'Тора', icon: BookOpen },
+  { path: '/resources', label: 'Как делать', icon: BookMarked },
+  { path: '/learn', label: 'Урок', icon: BookOpen },
 ];
 
 export default function BottomNav() {
@@ -24,7 +25,7 @@ export default function BottomNav() {
             <Link
               key={item.path}
               to={item.path}
-              className={`flex flex-col items-center py-2 px-3 min-w-[60px] transition-colors ${
+              className={`flex flex-1 flex-col items-center py-2 px-1 min-w-0 transition-colors ${
                 active 
                   ? 'text-primary' 
                   : 'text-muted-foreground hover:text-foreground'
