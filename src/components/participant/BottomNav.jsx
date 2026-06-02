@@ -32,7 +32,7 @@ export default function BottomNav() {
               }`}
             >
               <Icon className={`w-5 h-5 ${active ? 'stroke-[2.5px]' : ''}`} />
-              <span className={`text-[10px] mt-0.5 ${active ? 'font-semibold' : ''}`}>
+              <span className={`text-[9px] leading-tight whitespace-nowrap mt-0.5 ${active ? 'font-semibold' : ''}`}>
                 {item.label}
               </span>
             </Link>
