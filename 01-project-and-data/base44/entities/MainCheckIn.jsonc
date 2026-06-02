@@ -1,0 +1,44 @@
+{
+  "name": "MainCheckIn",
+  "type": "object",
+  "properties": {
+    "participant_id": {
+      "type": "string",
+      "description": "Participant ID"
+    },
+    "mitzvah_id": {
+      "type": "string",
+      "description": "Mitzvah ID"
+    },
+    "eligible_date": {
+      "type": "string",
+      "format": "date",
+      "description": "The date this check-in counts for"
+    },
+    "is_retrospective": {
+      "type": "boolean",
+      "default": false
+    },
+    "source": {
+      "type": "string",
+      "enum": [
+        "participant",
+        "admin",
+        "torah_completion"
+      ],
+      "default": "participant"
+    },
+    "admin_note": {
+      "type": "string"
+    },
+    "is_valid": {
+      "type": "boolean",
+      "default": true
+    }
+  },
+  "required": [
+    "participant_id",
+    "mitzvah_id",
+    "eligible_date"
+  ]
+}

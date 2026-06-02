@@ -1,0 +1,30 @@
+{
+  "name": "TorahCompletion",
+  "type": "object",
+  "properties": {
+    "participant_id": {
+      "type": "string"
+    },
+    "torah_id": {
+      "type": "string"
+    },
+    "completion_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "credited_as": {
+      "type": "string",
+      "enum": [
+        "main",
+        "bonus",
+        "read_only"
+      ],
+      "default": "read_only"
+    }
+  },
+  "required": [
+    "participant_id",
+    "torah_id",
+    "completion_date"
+  ]
+}
