@@ -5,6 +5,7 @@ import { isCurrentlyInClosure } from '@/lib/campaign';
 import ParticipantLogin from '@/pages/ParticipantLogin';
 import ShabbosScreen from '@/pages/ShabbosScreen';
 import Onboarding from '@/components/participant/Onboarding';
+import AvatarPickerScreen from '@/components/participant/AvatarPickerScreen';
 
 export default function ParticipantGate({ children }) {
   const { participant, loading } = useParticipant();
@@ -30,6 +31,7 @@ export default function ParticipantGate({ children }) {
   if (activeClosure) return <ShabbosScreen closurePeriod={activeClosure} />;
   if (!participant) return <ParticipantLogin />;
   if (!participant.onboarding_complete || !participant.mission_selected) return <Onboarding />;
+  if (!participant.avatar_url) return <AvatarPickerScreen />;
 
   return children;
 }
