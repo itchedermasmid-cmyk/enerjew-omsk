@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { ChevronLeft, Plus, Edit, Award } from 'lucide-react';
+import { ChevronLeft, Plus, Edit } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function AdminBadges() {
