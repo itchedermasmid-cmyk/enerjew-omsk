@@ -1,7 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useParticipant } from '@/lib/participantAuth.jsx';
-import { getOmskDate, isMitzvahEligibleOnDate, isMitzvahEligibleForGender } from '@/lib/campaign';
+import { formatDateRu, getOmskDate, isMitzvahEligibleOnDate, isMitzvahEligibleForGender } from '@/lib/campaign';
+import { getMitzvahIcon } from '@/lib/mitzvahCatalog';
+import { getCampaignSetting, recalculateParticipantStats } from '@/lib/participantStats';
+import { assertParticipantActionsOpen } from '@/lib/participantActions';
 import ParticipantHeader from '@/components/participant/ParticipantHeader';
 import BottomNav from '@/components/participant/BottomNav';
 import { Button } from '@/components/ui/button';
@@ -10,12 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { Star, Check, Lock } from 'lucide-react';
 import { motion } from 'framer-motion';
 import confetti from 'canvas-confetti';
-
-const MITZVAH_ICONS = {
-  'Тфилин': '🤲', 'Шаббатние свечи': '🕯️', 'Модэ Ани утром': '🌅',
-  'Омовение рук утром': '💧', 'Утренний Шма': '📖', 'Ночной Шма': '🌙',
-  'Давенинг / молитва': '🙏', 'Изучение Торы': '📜', 'Браха перед едой': '🍞'
-};
+import { toast } from 'sonner';
 
 export default function BonusScreen() {
   const { participant, refresh } = useParticipant();
@@ -23,20 +21,27 @@ export default function BonusScreen() {
   const [todayBonuses, setTodayBonuses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(null);
+  const [maxDaily, setMaxDaily] = useState(3);
+  const [campaignOpen, setCampaignOpen] = useState(true);
+  const [campaignStart, setCampaignStart] = useState('');
   const today = getOmskDate();
 
   const loadData = useCallback(async () => {
     if (!participant) return;
     
-    const [allMitzvahs, bonuses] = await Promise.all([
+    const [allMitzvahs, bonuses, maxDailySetting, startDate, endDate] = await Promise.all([
       base44.entities.Mitzvah.filter({ is_active: true, can_be_bonus: true }),
       base44.entities.BonusCheckIn.filter({ 
         participant_id: participant.id, 
         eligible_date: today,
         is_valid: true 
-      })
+      }),
+      getCampaignSetting('max_daily_bonus'),
+      getCampaignSetting('campaign_start'),
+      getCampaignSetting('campaign_end'),
     ]);
 
+    const isOpen = today >= startDate && today <= endDate;
     // Filter: eligible for gender, eligible today, not the main mitzvah
     const eligible = allMitzvahs
       .filter(m => m.id !== participant.main_mitzvah_id)
@@ -44,8 +49,11 @@ export default function BonusScreen() {
       .filter(m => isMitzvahEligibleOnDate(m, today))
       .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
 
-    setMitzvahs(eligible);
+    setMitzvahs(isOpen ? eligible : []);
     setTodayBonuses(bonuses);
+    setMaxDaily(Number(maxDailySetting) || 3);
+    setCampaignOpen(isOpen);
+    setCampaignStart(startDate);
     setLoading(false);
   }, [participant, today]);
 
@@ -53,53 +61,40 @@ export default function BonusScreen() {
 
   const todayBonusCount = todayBonuses.length;
   const completedIds = new Set(todayBonuses.map(b => b.mitzvah_id));
-  const maxDaily = 3;
   const limitReached = todayBonusCount >= maxDaily;
 
   const handleBonus = async (mitzvahId) => {
     if (completedIds.has(mitzvahId) || limitReached || submitting) return;
     setSubmitting(mitzvahId);
     
-    // Check duplicate
-    const existing = await base44.entities.BonusCheckIn.filter({
-      participant_id: participant.id,
-      mitzvah_id: mitzvahId,
-      eligible_date: today,
-      is_valid: true
-    });
-    
-    if (existing.length === 0) {
-      await base44.entities.BonusCheckIn.create({
+    try {
+      await assertParticipantActionsOpen(today);
+      const existing = await base44.entities.BonusCheckIn.filter({
         participant_id: participant.id,
         mitzvah_id: mitzvahId,
         eligible_date: today,
-        stars_awarded: 1,
-        source: 'participant'
+        is_valid: true,
       });
 
-      // Update bonus stars count
-      const allBonuses = await base44.entities.BonusCheckIn.filter({
-        participant_id: participant.id, is_valid: true
-      });
-      const adjustments = await base44.entities.BonusStarAdjustment.filter({
-        participant_id: participant.id
-      });
-      const adjTotal = adjustments.reduce((sum, a) => sum + (a.stars_change || 0), 0);
-      const totalStars = allBonuses.reduce((sum, b) => sum + (b.stars_awarded || 1), 0) + adjTotal;
-      
-      const specialPrize = (participant.mission_progress || 0) >= 80 && totalStars >= 100;
-      
-      await base44.entities.Participant.update(participant.id, {
-        bonus_stars: totalStars,
-        special_prize_earned: specialPrize
-      });
+      if (existing.length === 0) {
+        await base44.entities.BonusCheckIn.create({
+          participant_id: participant.id,
+          mitzvah_id: mitzvahId,
+          eligible_date: today,
+          stars_awarded: 1,
+          source: 'participant',
+        });
 
-      confetti({ particleCount: 30, spread: 40, origin: { y: 0.6 } });
-      await refresh();
+        await recalculateParticipantStats(participant);
+        confetti({ particleCount: 30, spread: 40, origin: { y: 0.6 } });
+        await refresh();
+      }
+      await loadData();
+    } catch {
+      toast.error('Не удалось сохранить бонус. Попробуйте ещё раз.');
+    } finally {
+      setSubmitting(null);
     }
-    
-    await loadData();
-    setSubmitting(null);
   };
 
   return (
@@ -121,7 +116,16 @@ export default function BonusScreen() {
           </div>
         </div>
 
-        {limitReached && (
+        {!campaignOpen && (
+          <div className="flex items-center gap-2 bg-muted rounded-xl p-3">
+            <Lock className="w-4 h-4 text-muted-foreground" />
+            <p className="text-sm text-muted-foreground">
+              {today < campaignStart ? `Бонусные отметки откроются ${formatDateRu(campaignStart)}` : 'Летняя кампания завершена'}
+            </p>
+          </div>
+        )}
+
+        {campaignOpen && limitReached && (
           <div className="flex items-center gap-2 bg-muted rounded-xl p-3">
             <Lock className="w-4 h-4 text-muted-foreground" />
             <p className="text-sm text-muted-foreground">
@@ -153,7 +157,7 @@ export default function BonusScreen() {
                 >
                   <Card className={completed ? 'bg-success/5 border-success/20' : ''}>
                     <CardContent className="p-4 flex items-center gap-4">
-                      <span className="text-2xl">{MITZVAH_ICONS[m.name_ru] || '✡️'}</span>
+                      <span className="text-2xl">{getMitzvahIcon(m)}</span>
                       <div className="flex-1 min-w-0">
                         <p className="font-semibold text-sm">{m.name_ru}</p>
                         {m.description_ru && (

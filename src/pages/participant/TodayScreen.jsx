@@ -1,22 +1,21 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useParticipant } from '@/lib/participantAuth.jsx';
-import { getOmskDate, isMitzvahEligibleOnDate, calculateMissionProgress, getProgressLevel, getProgressLevelName, MILESTONE_THRESHOLDS } from '@/lib/campaign';
+import { formatDateRu, getOmskDate, isMitzvahEligibleOnDate, getProgressLevelName } from '@/lib/campaign';
+import { getMitzvahIcon, getMitzvahMeta } from '@/lib/mitzvahCatalog';
+import { getCampaignSetting, recalculateParticipantStats } from '@/lib/participantStats';
+import { assertParticipantActionsOpen } from '@/lib/participantActions';
 import ParticipantHeader from '@/components/participant/ParticipantHeader';
 import BottomNav from '@/components/participant/BottomNav';
 import RetrospectivePanel from '@/components/participant/RetrospectivePanel';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { Check, Flame, Target, Star, Sparkles } from 'lucide-react';
+import { Check, Flame, Target, Star, Sparkles, BookMarked } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
-
-const MITZVAH_ICONS = {
-  'Тфилин': '🤲', 'Шаббатние свечи': '🕯️', 'Модэ Ани утром': '🌅',
-  'Омовение рук утром': '💧', 'Утренний Шма': '📖', 'Ночной Шма': '🌙',
-  'Давенинг / молитва': '🙏', 'Изучение Торы': '📜', 'Браха перед едой': '🍞'
-};
+import { Link } from 'react-router-dom';
+import { toast } from 'sonner';
 
 export default function TodayScreen() {
   const { participant, refresh } = useParticipant();
@@ -26,24 +25,34 @@ export default function TodayScreen() {
   const [submitting, setSubmitting] = useState(false);
   const [celebrated, setCelebrated] = useState(false);
   const [isEligibleToday, setIsEligibleToday] = useState(true);
+  const [campaignOpen, setCampaignOpen] = useState(true);
+  const [campaignStart, setCampaignStart] = useState('');
 
   const today = getOmskDate();
 
   const loadData = useCallback(async () => {
-    if (!participant?.main_mitzvah_id) return;
+    if (!participant?.main_mitzvah_id) {
+      setLoading(false);
+      return;
+    }
     
-    const [mitzvahs, checkIns] = await Promise.all([
+    const [mitzvahs, checkIns, startDate, endDate] = await Promise.all([
       base44.entities.Mitzvah.filter({ id: participant.main_mitzvah_id }),
       base44.entities.MainCheckIn.filter({ 
         participant_id: participant.id, 
         eligible_date: today,
         is_valid: true 
-      })
+      }),
+      getCampaignSetting('campaign_start'),
+      getCampaignSetting('campaign_end'),
     ]);
     
+    const isOpen = today >= startDate && today <= endDate;
+    setCampaignOpen(isOpen);
+    setCampaignStart(startDate);
     if (mitzvahs.length > 0) {
       setMitzvah(mitzvahs[0]);
-      setIsEligibleToday(isMitzvahEligibleOnDate(mitzvahs[0], today));
+      setIsEligibleToday(isOpen && isMitzvahEligibleOnDate(mitzvahs[0], today));
     }
     setCheckedIn(checkIns.length > 0);
     setLoading(false);
@@ -54,87 +63,43 @@ export default function TodayScreen() {
   const handleCheckIn = async () => {
     if (checkedIn || submitting || !isEligibleToday) return;
     setSubmitting(true);
-    
-    await base44.entities.MainCheckIn.create({
-      participant_id: participant.id,
-      mitzvah_id: participant.main_mitzvah_id,
-      eligible_date: today,
-      is_retrospective: false,
-      source: 'participant'
-    });
 
-    // Recalculate stats
-    const allCheckIns = await base44.entities.MainCheckIn.filter({
-      participant_id: participant.id, is_valid: true
-    });
-    
-    const settings = await base44.entities.CampaignSettings.filter({ key: 'campaign_start' });
-    const startDate = settings.length > 0 ? settings[0].value : '2025-06-07';
-    const endSettings = await base44.entities.CampaignSettings.filter({ key: 'campaign_end' });
-    const endDate = endSettings.length > 0 ? endSettings[0].value : '2025-08-31';
-    
-    // Count eligible days up to today
-    let eligibleCount = 0;
-    const current = new Date(startDate);
-    const todayDate = new Date(today);
-    const endD = new Date(endDate);
-    const checkDate = todayDate < endD ? todayDate : endD;
-    
-    while (current <= checkDate) {
-      const dateStr = current.toISOString().split('T')[0];
-      if (mitzvah && isMitzvahEligibleOnDate(mitzvah, dateStr)) {
-        eligibleCount++;
+    try {
+      await assertParticipantActionsOpen(today);
+      const existing = await base44.entities.MainCheckIn.filter({
+        participant_id: participant.id,
+        mitzvah_id: participant.main_mitzvah_id,
+        eligible_date: today,
+        is_valid: true,
+      });
+
+      if (existing.length === 0) {
+        await base44.entities.MainCheckIn.create({
+          participant_id: participant.id,
+          mitzvah_id: participant.main_mitzvah_id,
+          eligible_date: today,
+          is_retrospective: false,
+          source: 'participant',
+        });
       }
-      current.setDate(current.getDate() + 1);
+
+      await recalculateParticipantStats(participant, mitzvah);
+      setCheckedIn(true);
+      setCelebrated(true);
+      confetti({ particleCount: 80, spread: 60, origin: { y: 0.7 } });
+      await refresh();
+      setTimeout(() => setCelebrated(false), 3000);
+    } catch {
+      toast.error('Не удалось сохранить отметку. Попробуйте ещё раз.');
+    } finally {
+      setSubmitting(false);
     }
-
-    const completed = allCheckIns.length + 1;
-    const progress = calculateMissionProgress(completed, eligibleCount);
-    const level = getProgressLevel(progress);
-    
-    // Calculate streak
-    let streak = 1;
-    const sortedCheckIns = [...allCheckIns, { eligible_date: today }]
-      .sort((a, b) => b.eligible_date.localeCompare(a.eligible_date));
-    
-    // Simple streak: count consecutive eligible days with check-ins
-    for (let i = 1; i < sortedCheckIns.length; i++) {
-      const prevDate = new Date(sortedCheckIns[i - 1].eligible_date);
-      const currDate = new Date(sortedCheckIns[i].eligible_date);
-      const diff = (prevDate - currDate) / (1000 * 60 * 60 * 24);
-      if (diff <= 2) { // Allow 1 day gap for non-eligible days
-        streak++;
-      } else break;
-    }
-
-    const bestStreak = Math.max(streak, participant.best_streak || 0);
-    
-    // Check special prize
-    const specialPrize = progress >= 80 && (participant.bonus_stars || 0) >= 100;
-
-    await base44.entities.Participant.update(participant.id, {
-      completed_eligible: completed,
-      eligible_so_far: eligibleCount,
-      mission_progress: progress,
-      progress_level: level,
-      current_streak: streak,
-      best_streak: bestStreak,
-      special_prize_earned: specialPrize
-    });
-
-    setCheckedIn(true);
-    setSubmitting(false);
-    setCelebrated(true);
-    
-    // Celebration
-    confetti({ particleCount: 80, spread: 60, origin: { y: 0.7 } });
-    await refresh();
-    setTimeout(() => setCelebrated(false), 3000);
   };
 
   const progress = participant?.mission_progress || 0;
   const nextMilestone = progress < 25 ? 25 : progress < 50 ? 50 : progress < 80 ? 80 : 100;
   const displayName = participant?.nickname || participant?.full_name?.split(' ')[0] || '';
+  const resourceSlug = mitzvah ? getMitzvahMeta(mitzvah).slug : '';
 
   return (
     <div className="min-h-screen bg-background pb-20">
@@ -156,7 +121,7 @@ export default function TodayScreen() {
           <Card className="overflow-hidden">
             <div className="bg-gradient-to-r from-primary to-primary/80 p-4 text-primary-foreground">
               <div className="flex items-center gap-3">
-                <span className="text-3xl">{MITZVAH_ICONS[mitzvah.name_ru] || '✡️'}</span>
+                <span className="text-3xl">{getMitzvahIcon(mitzvah)}</span>
                 <div>
                   <p className="text-sm opacity-90">Моя миссия</p>
                   <p className="text-lg font-bold">{mitzvah.name_ru}</p>
@@ -195,14 +160,20 @@ export default function TodayScreen() {
                   <span className="text-muted-foreground">До {nextMilestone}%</span>
                   <span className="font-medium text-primary">{progress}%</span>
                 </div>
-                <Progress value={progress} max={nextMilestone} className="h-3" />
+                <Progress value={Math.min(100, (progress / nextMilestone) * 100)} className="h-3" />
                 <p className="text-xs text-muted-foreground mt-1">
                   {getProgressLevelName(participant?.progress_level || 'beginner')}
                 </p>
               </div>
 
               {/* Check-in button */}
-              {!isEligibleToday ? (
+              {!campaignOpen ? (
+                <div className="text-center py-3 bg-muted rounded-xl">
+                  <p className="text-muted-foreground">
+                    {today < campaignStart ? `Кампания начнётся ${formatDateRu(campaignStart)}` : 'Летняя кампания завершена'}
+                  </p>
+                </div>
+              ) : !isEligibleToday ? (
                 <div className="text-center py-3 bg-muted rounded-xl">
                   <p className="text-muted-foreground">
                     Сегодня не день для этой мицвы
@@ -223,7 +194,7 @@ export default function TodayScreen() {
                     >
                       <Check className="w-6 h-6 text-success" />
                       <span className="font-semibold text-success">
-                        {celebrated ? 'Отлично! Так держать! 🎉' : 'Выполнено сегодня ✓'}
+                        {celebrated ? `Отлично! ${mitzvah.name_ru} — выполнено! 🎉` : `Сегодня выполнено: ${mitzvah.name_ru} ✓`}
                       </span>
                     </motion.div>
                   ) : (
@@ -239,7 +210,7 @@ export default function TodayScreen() {
                         ) : (
                           <>
                             <Sparkles className="w-5 h-5 mr-2" />
-                            Я выполнил(а) свою сегодняшнюю мицву
+                            Я выполнил(а): {mitzvah.name_ru}
                           </>
                         )}
                       </Button>
@@ -247,6 +218,13 @@ export default function TodayScreen() {
                   )}
                 </AnimatePresence>
               )}
+
+              <Button asChild variant="ghost" className="w-full mt-2 text-primary">
+                <Link to={`/resources?resource=${resourceSlug}`}>
+                  <BookMarked className="w-4 h-4 mr-2" />
+                  Как выполнить эту мицву
+                </Link>
+              </Button>
             </CardContent>
           </Card>
         )}

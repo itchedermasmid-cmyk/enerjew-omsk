@@ -1,14 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useParticipant } from '@/lib/participantAuth.jsx';
-import { getProgressLevelName } from '@/lib/campaign';
 import ParticipantHeader from '@/components/participant/ParticipantHeader';
 import BottomNav from '@/components/participant/BottomNav';
 import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Target, Flame, Star, Award, Trophy, Zap, Gift } from 'lucide-react';
-import { motion } from 'framer-motion';
 
 export default function ProgressScreen() {
   const { participant } = useParticipant();
@@ -97,7 +95,7 @@ export default function ProgressScreen() {
                 <span className="text-muted-foreground">До поездки (80%)</span>
                 <span className="font-medium">{Math.min(progress, 80)}/80</span>
               </div>
-              <Progress value={Math.min(progress, 80)} max={80} className="h-2" />
+              <Progress value={Math.min(100, (progress / 80) * 100)} className="h-2" />
             </div>
 
             {/* Champion bar */}
@@ -106,7 +104,7 @@ export default function ProgressScreen() {
                 <span className="text-muted-foreground">Чемпион лета (100%)</span>
                 <span className="font-medium">{progress}/100</span>
               </div>
-              <Progress value={progress} max={100} className="h-2" />
+              <Progress value={progress} className="h-2" />
             </div>
           </CardContent>
         </Card>
@@ -122,7 +120,7 @@ export default function ProgressScreen() {
               <span className="text-3xl font-bold text-secondary">{p?.bonus_stars || 0}</span>
               <span className="text-sm text-muted-foreground">/ 100 для спецприза</span>
             </div>
-            <Progress value={Math.min(p?.bonus_stars || 0, 100)} max={100} className="h-2" />
+            <Progress value={Math.min(p?.bonus_stars || 0, 100)} className="h-2" />
             {p?.special_prize_earned && (
               <div className="mt-3 flex items-center gap-2 bg-secondary/10 rounded-lg p-2">
                 <Gift className="w-4 h-4 text-secondary" />
