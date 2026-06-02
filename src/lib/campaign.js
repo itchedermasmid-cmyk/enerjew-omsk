@@ -1,16 +1,20 @@
-// Campaign utility functions
-// All dates use Asia/Omsk timezone (UTC+6)
-
-const OMSK_OFFSET_HOURS = 6;
+// Campaign utility functions. Omsk stays on UTC+6 year-round.
+const OMSK_TIMEZONE = 'Asia/Omsk';
+const OMSK_OFFSET = '+06:00';
 
 export function getOmskNow() {
-  const now = new Date();
-  const utc = now.getTime() + now.getTimezoneOffset() * 60000;
-  return new Date(utc + OMSK_OFFSET_HOURS * 3600000);
+  return new Date();
 }
 
-export function getOmskDate() {
-  return formatDateString(getOmskNow());
+export function getOmskDate(date = getOmskNow()) {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: OMSK_TIMEZONE,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(date);
+  const values = Object.fromEntries(parts.map(part => [part.type, part.value]));
+  return `${values.year}-${values.month}-${values.day}`;
 }
 
 export function formatDateString(date) {
@@ -31,11 +35,13 @@ export function getDayOfWeek(dateStr) {
 
 export function isMitzvahEligibleOnDate(mitzvah, dateStr) {
   if (!mitzvah || !mitzvah.is_active) return false;
+  if (mitzvah.excluded_dates?.includes(dateStr)) return false;
+  if (mitzvah.additional_eligible_dates?.includes(dateStr)) return true;
   
   const dayOfWeek = getDayOfWeek(dateStr);
   
   if (mitzvah.frequency === 'daily') return true;
-  if (mitzvah.frequency === 'weekdays_only') return dayOfWeek >= 0 && dayOfWeek <= 4; // Sun-Thu (no Fri/Sat for tefillin)
+  if (mitzvah.frequency === 'weekdays_only') return dayOfWeek !== 6; // Sun-Fri; holiday exclusions can be configured separately
   if (mitzvah.frequency === 'shabbos_only') return dayOfWeek === 5; // Friday for candle lighting
   if (mitzvah.frequency === 'custom' && mitzvah.eligible_days?.length > 0) {
     return mitzvah.eligible_days.includes(dayOfWeek);
@@ -53,7 +59,7 @@ export function isMitzvahEligibleForGender(mitzvah, gender) {
 
 export function calculateMissionProgress(completed, eligible) {
   if (eligible <= 0) return 0;
-  return Math.round((completed / eligible) * 100);
+  return Math.min(100, Math.round((completed / eligible) * 100));
 }
 
 export function getProgressLevel(progress) {
@@ -90,13 +96,12 @@ export function getEligibleDatesInRange(mitzvah, startDate, endDate) {
   return dates;
 }
 
-export function isCurrentlyInClosure(closurePeriods) {
-  const now = getOmskNow();
+export function isCurrentlyInClosure(closurePeriods, now = getOmskNow()) {
   const nowMs = now.getTime();
   
   for (const period of closurePeriods) {
-    const start = new Date(period.start_time).getTime();
-    const end = new Date(period.end_time).getTime();
+    const start = parseOmskDateTime(period.start_time).getTime();
+    const end = parseOmskDateTime(period.end_time).getTime();
     if (nowMs >= start && nowMs <= end) {
       return period;
     }
@@ -106,13 +111,25 @@ export function isCurrentlyInClosure(closurePeriods) {
 
 export function getNextClosureEnd(closurePeriod) {
   if (!closurePeriod) return null;
-  return new Date(closurePeriod.end_time);
+  return parseOmskDateTime(closurePeriod.end_time);
+}
+
+export function parseOmskDateTime(dateStr) {
+  if (!dateStr) return new Date(NaN);
+  if (/[zZ]$|[+-]\d{2}:\d{2}$/.test(dateStr)) return new Date(dateStr);
+  const withTime = dateStr.length === 10
+    ? `${dateStr}T00:00:00`
+    : dateStr.length === 16
+      ? `${dateStr}:00`
+      : dateStr;
+  return new Date(`${withTime}${OMSK_OFFSET}`);
 }
 
 export function formatDateTime(dateStr) {
   if (!dateStr) return '';
-  const d = new Date(dateStr);
+  const d = parseOmskDateTime(dateStr);
   return d.toLocaleDateString('ru-RU', {
+    timeZone: OMSK_TIMEZONE,
     day: 'numeric',
     month: 'long',
     year: 'numeric',
@@ -135,16 +152,15 @@ export function canSubmitRetrospective(closurePeriod) {
   if (!closurePeriod) return false;
   const now = getOmskNow();
   const deadline = closurePeriod.retrospective_deadline
-    ? new Date(closurePeriod.retrospective_deadline)
+    ? parseOmskDateTime(closurePeriod.retrospective_deadline)
     : null;
   
   if (!deadline) {
     // Default: Sunday 23:59 after the closure ends
-    const end = new Date(closurePeriod.end_time);
-    const sunday = new Date(end);
+    const endDate = getOmskDate(parseOmskDateTime(closurePeriod.end_time));
+    const sunday = parseDate(endDate);
     sunday.setDate(sunday.getDate() + (7 - sunday.getDay()) % 7);
-    sunday.setHours(23, 59, 59, 999);
-    return now <= sunday;
+    return now <= parseOmskDateTime(`${formatDateString(sunday)}T23:59`);
   }
   return now <= deadline;
 }
@@ -157,9 +173,9 @@ export const MILESTONE_THRESHOLDS = {
 };
 
 export const DEFAULT_SETTINGS = {
-  campaign_year: '2025',
-  campaign_start: '2025-06-07',
-  campaign_end: '2025-08-31',
+  campaign_year: '2026',
+  campaign_start: '2026-06-07',
+  campaign_end: '2026-08-31',
   timezone: 'Asia/Omsk',
   max_daily_bonus: 3,
   retro_deadline_day: 'sunday',
