@@ -48,6 +48,20 @@
       },
       "description": "0=Sun..6=Sat, empty means all"
     },
+    "excluded_dates": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Dates when the mitzvah should not be tracked, YYYY-MM-DD"
+    },
+    "additional_eligible_dates": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Extra eligible dates such as holiday candle lighting, YYYY-MM-DD"
+    },
     "is_active": {
       "type": "boolean",
       "default": true

@@ -2,6 +2,10 @@
   "name": "Resource",
   "type": "object",
   "properties": {
+    "slug": {
+      "type": "string",
+      "description": "Stable built-in resource key"
+    },
     "mitzvah_id": {
       "type": "string",
       "description": "Associated mitzvah ID"
@@ -12,6 +16,10 @@
     "content_ru": {
       "type": "string",
       "description": "Main Russian content (markdown)"
+    },
+    "short_ru": {
+      "type": "string",
+      "description": "Short card summary in Russian"
     },
     "hebrew_text": {
       "type": "string",
@@ -28,6 +36,20 @@
     "instructions_ru": {
       "type": "string",
       "description": "Step-by-step instructions"
+    },
+    "tips_ru": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Short practical reminders"
+    },
+    "sections": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      },
+      "description": "Optional structured resource sections"
     },
     "image_url": {
       "type": "string"
