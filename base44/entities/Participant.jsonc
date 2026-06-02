@@ -10,6 +10,10 @@
       "type": "string",
       "description": "Optional public display name"
     },
+    "avatar_id": {
+      "type": "string",
+      "description": "Selected built-in illustrated avatar"
+    },
     "gender": {
       "type": "string",
       "enum": [
@@ -21,10 +25,6 @@
     "pin_hash": {
       "type": "string",
       "description": "Hashed PIN for login"
-    },
-    "avatar_url": {
-      "type": "string",
-      "description": "URL of the participant's avatar image"
     },
     "main_mitzvah_id": {
       "type": "string",
