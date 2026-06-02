@@ -104,15 +104,41 @@ export default function ResourcesScreen() {
                 </div>
               )}
 
+              {selected.shared_prefix && (
+                <div className="rounded-xl border-2 border-primary/20 bg-primary/5 p-4 space-y-3">
+                  <div>
+                    <h3 className="font-display font-bold text-lg">{selected.shared_prefix.title}</h3>
+                    <p className="text-sm text-muted-foreground mt-1">{selected.shared_prefix.note}</p>
+                  </div>
+                  <div className="bg-card rounded-lg p-3 space-y-2 border">
+                    <p className="hebrew-text text-lg">{selected.shared_prefix.hebrew}</p>
+                    <p className="text-sm italic text-muted-foreground">{selected.shared_prefix.transliteration}</p>
+                    <p className="text-sm">{selected.shared_prefix.translation}</p>
+                  </div>
+                </div>
+              )}
+
               {selected.sections?.length > 0 && (
                 <div className="space-y-3">
-                  <h3 className="font-display font-bold text-lg">Выбери продукт</h3>
+                  <div>
+                    <h3 className="font-display font-bold text-lg">Выбери продукт</h3>
+                    {selected.shared_prefix && (
+                      <p className="text-sm text-muted-foreground mt-1">
+                        После общего начала добавь окончание из подходящей карточки.
+                      </p>
+                    )}
+                  </div>
                   {selected.sections.map(section => (
                     <div key={section.title} className="border rounded-xl p-4 space-y-2">
                       <div>
                         <p className="font-semibold">{section.title}</p>
                         <p className="text-sm text-primary">{section.subtitle}</p>
                       </div>
+                      {selected.shared_prefix && (
+                        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                          Добавь окончание
+                        </p>
+                      )}
                       <p className="hebrew-text text-lg">{section.hebrew}</p>
                       <p className="text-sm italic text-muted-foreground">{section.transliteration}</p>
                       <p className="text-sm">{section.translation}</p>
