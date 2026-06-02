@@ -7,6 +7,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Lock, User, LogIn } from 'lucide-react';
 import { motion } from 'framer-motion';
+import Logo from '@/components/Logo';
 
 export default function ParticipantLogin() {
   const { login } = useParticipant();
@@ -50,8 +51,8 @@ export default function ParticipantLogin() {
       >
         {/* Logo area */}
         <div className="text-center mb-8">
-          <div className="w-20 h-20 mx-auto mb-4 bg-primary rounded-2xl flex items-center justify-center shadow-lg">
-            <span className="text-3xl font-display font-bold text-primary-foreground">EJ</span>
+          <div className="w-28 h-24 mx-auto mb-4 bg-card rounded-2xl flex items-center justify-center shadow-lg p-3">
+            <Logo className="max-w-full max-h-full w-auto" />
           </div>
           <h1 className="text-2xl font-display font-bold text-foreground">EnerJew Omsk</h1>
           <p className="text-muted-foreground mt-1">Летняя кампания мицвот</p>
