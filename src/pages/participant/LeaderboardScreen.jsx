@@ -4,6 +4,7 @@ import { useParticipant } from '@/lib/participantAuth.jsx';
 import { getProgressLevelName } from '@/lib/campaign';
 import ParticipantHeader from '@/components/participant/ParticipantHeader';
 import BottomNav from '@/components/participant/BottomNav';
+import ParticipantAvatar from '@/components/participant/ParticipantAvatar';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -85,6 +86,7 @@ export default function LeaderboardScreen() {
                       }`}>
                         {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i + 1}
                       </div>
+                      <ParticipantAvatar participant={p} className="w-9 h-9" />
                       <div className="flex-1 min-w-0">
                         <p className="font-semibold text-sm truncate">
                           {getDisplayName(p)}

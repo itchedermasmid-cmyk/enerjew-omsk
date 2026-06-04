@@ -1,40 +1,61 @@
-import React, { useState, useEffect } from 'react';
-import { base44 } from '@/api/base44Client';
+import React, { useState } from 'react';
 import { useParticipant } from '@/lib/participantAuth.jsx';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Lock, User, LogIn } from 'lucide-react';
+import { Lock, LogIn, Smartphone, User, UserPlus } from 'lucide-react';
 import { motion } from 'framer-motion';
 import Logo from '@/components/Logo';
 
+const cleanPin = value => value.replace(/\D/g, '').slice(0, 6);
+
 export default function ParticipantLogin() {
-  const { login } = useParticipant();
-  const [participants, setParticipants] = useState([]);
-  const [selectedId, setSelectedId] = useState('');
+  const { login, registerParticipant } = useParticipant();
+  const [mode, setMode] = useState('signup');
+  const [loginName, setLoginName] = useState('');
+  const [loginPin, setLoginPin] = useState('');
+  const [fullName, setFullName] = useState('');
+  const [gender, setGender] = useState('');
   const [pin, setPin] = useState('');
+  const [confirmPin, setConfirmPin] = useState('');
+  const [phoneConfirmed, setPhoneConfirmed] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [loadingList, setLoadingList] = useState(true);
-
-  useEffect(() => {
-    base44.entities.Participant.filter({ status: 'active' })
-      .then(list => {
-        setParticipants(list.sort((a, b) => a.full_name.localeCompare(b.full_name, 'ru')));
-      })
-      .finally(() => setLoadingList(false));
-  }, []);
 
   const handleLogin = async () => {
-    if (!selectedId || !pin) {
-      setError('Выберите имя и введите PIN');
+    if (!loginName.trim() || !loginPin) {
+      setError('Введите имя и PIN');
       return;
     }
     setError('');
     setLoading(true);
     try {
-      await login(selectedId, pin);
+      await login(loginName, loginPin);
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSignup = async () => {
+    if (!fullName.trim() || !gender || !pin || !confirmPin) {
+      setError('Заполните все поля');
+      return;
+    }
+    if (pin !== confirmPin) {
+      setError('PIN-коды не совпадают');
+      return;
+    }
+    if (!phoneConfirmed) {
+      setError('Подтвердите, что это ваш главный телефон');
+      return;
+    }
+    setError('');
+    setLoading(true);
+    try {
+      await registerParticipant({ fullName, gender, pin });
     } catch (e) {
       setError(e.message);
     } finally {
@@ -49,8 +70,7 @@ export default function ParticipantLogin() {
         animate={{ opacity: 1, y: 0 }}
         className="w-full max-w-sm"
       >
-        {/* Logo area */}
-        <div className="text-center mb-8">
+        <div className="text-center mb-6">
           <div className="w-28 h-24 mx-auto mb-4 bg-card rounded-2xl flex items-center justify-center shadow-lg p-3">
             <Logo className="max-w-full max-h-full w-auto" />
           </div>
@@ -59,46 +79,181 @@ export default function ParticipantLogin() {
         </div>
 
         <Card className="shadow-xl border-0">
-          <CardContent className="p-6 space-y-5">
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground flex items-center gap-2">
-                <User className="w-4 h-4 text-primary" />
-                Ваше имя
-              </label>
-              {loadingList ? (
-                <div className="h-10 bg-muted rounded-lg animate-pulse" />
-              ) : (
-                <Select value={selectedId} onValueChange={setSelectedId}>
-                  <SelectTrigger className="h-12 text-base">
-                    <SelectValue placeholder="Выберите своё имя..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {participants.map(p => (
-                      <SelectItem key={p.id} value={p.id}>
-                        {p.full_name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
+          <CardContent className="p-5 space-y-5">
+            <div className="grid grid-cols-2 gap-2 rounded-xl bg-muted p-1">
+              <button
+                type="button"
+                onClick={() => {
+                  setMode('signup');
+                  setError('');
+                }}
+                className={`rounded-lg py-2 text-sm font-semibold transition ${
+                  mode === 'signup' ? 'bg-card text-primary shadow-sm' : 'text-muted-foreground'
+                }`}
+              >
+                Первый раз
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setMode('login');
+                  setError('');
+                }}
+                className={`rounded-lg py-2 text-sm font-semibold transition ${
+                  mode === 'login' ? 'bg-card text-primary shadow-sm' : 'text-muted-foreground'
+                }`}
+              >
+                Уже есть PIN
+              </button>
             </div>
 
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground flex items-center gap-2">
-                <Lock className="w-4 h-4 text-primary" />
-                PIN-код
-              </label>
-              <Input
-                type="password"
-                inputMode="numeric"
-                maxLength={6}
-                placeholder="Введите PIN..."
-                value={pin}
-                onChange={e => setPin(e.target.value.replace(/\D/g, ''))}
-                className="h-12 text-center text-xl tracking-widest"
-                onKeyDown={e => e.key === 'Enter' && handleLogin()}
-              />
-            </div>
+            {mode === 'signup' ? (
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-foreground flex items-center gap-2">
+                    <User className="w-4 h-4 text-primary" />
+                    Имя и фамилия
+                  </label>
+                  <Input
+                    value={fullName}
+                    onChange={e => setFullName(e.target.value)}
+                    placeholder="Например: Даниэль Иванов"
+                    className="h-12 text-base"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-foreground">Кто ты?</label>
+                  <Select value={gender} onValueChange={setGender}>
+                    <SelectTrigger className="h-12 text-base">
+                      <SelectValue placeholder="Выберите..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="male">Мальчик</SelectItem>
+                      <SelectItem value="female">Девочка</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-foreground flex items-center gap-2">
+                      <Lock className="w-4 h-4 text-primary" />
+                      PIN
+                    </label>
+                    <Input
+                      type="password"
+                      inputMode="numeric"
+                      maxLength={6}
+                      value={pin}
+                      onChange={e => setPin(cleanPin(e.target.value))}
+                      className="h-12 text-center text-xl tracking-widest"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-foreground">Повторить</label>
+                    <Input
+                      type="password"
+                      inputMode="numeric"
+                      maxLength={6}
+                      value={confirmPin}
+                      onChange={e => setConfirmPin(cleanPin(e.target.value))}
+                      className="h-12 text-center text-xl tracking-widest"
+                      onKeyDown={e => e.key === 'Enter' && handleSignup()}
+                    />
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setPhoneConfirmed(value => !value)}
+                  className={`w-full rounded-xl border p-3 text-left transition ${
+                    phoneConfirmed ? 'border-primary bg-primary/5' : 'border-border bg-muted/30'
+                  }`}
+                >
+                  <span className="flex items-start gap-3">
+                    <span className={`mt-1 flex h-5 w-5 items-center justify-center rounded border ${
+                      phoneConfirmed ? 'border-primary bg-primary text-primary-foreground' : 'border-muted-foreground/40'
+                    }`}>
+                      {phoneConfirmed ? '✓' : ''}
+                    </span>
+                    <span>
+                      <span className="flex items-center gap-2 font-medium">
+                        <Smartphone className="w-4 h-4 text-primary" />
+                        Это мой главный телефон
+                      </span>
+                      <span className="mt-1 block text-xs text-muted-foreground">
+                        После регистрации этот аккаунт будет работать на этом телефоне.
+                      </span>
+                    </span>
+                  </span>
+                </button>
+
+                <Button
+                  onClick={handleSignup}
+                  disabled={loading}
+                  className="w-full h-12 text-base font-semibold"
+                  size="lg"
+                >
+                  {loading ? (
+                    <div className="w-5 h-5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
+                  ) : (
+                    <>
+                      <UserPlus className="w-5 h-5 mr-2" />
+                      Создать аккаунт
+                    </>
+                  )}
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-foreground flex items-center gap-2">
+                    <User className="w-4 h-4 text-primary" />
+                    Имя и фамилия
+                  </label>
+                  <Input
+                    value={loginName}
+                    onChange={e => setLoginName(e.target.value)}
+                    placeholder="Введите своё имя..."
+                    className="h-12 text-base"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-foreground flex items-center gap-2">
+                    <Lock className="w-4 h-4 text-primary" />
+                    PIN-код
+                  </label>
+                  <Input
+                    type="password"
+                    inputMode="numeric"
+                    maxLength={6}
+                    placeholder="Введите PIN..."
+                    value={loginPin}
+                    onChange={e => setLoginPin(cleanPin(e.target.value))}
+                    className="h-12 text-center text-xl tracking-widest"
+                    onKeyDown={e => e.key === 'Enter' && handleLogin()}
+                  />
+                </div>
+
+                <Button
+                  onClick={handleLogin}
+                  disabled={loading || !loginName.trim() || !loginPin}
+                  className="w-full h-12 text-base font-semibold"
+                  size="lg"
+                >
+                  {loading ? (
+                    <div className="w-5 h-5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
+                  ) : (
+                    <>
+                      <LogIn className="w-5 h-5 mr-2" />
+                      Войти
+                    </>
+                  )}
+                </Button>
+              </div>
+            )}
 
             {error && (
               <motion.p
@@ -109,26 +264,6 @@ export default function ParticipantLogin() {
                 {error}
               </motion.p>
             )}
-
-            <Button
-              onClick={handleLogin}
-              disabled={loading || !selectedId || !pin}
-              className="w-full h-12 text-base font-semibold"
-              size="lg"
-            >
-              {loading ? (
-                <div className="w-5 h-5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
-              ) : (
-                <>
-                  <LogIn className="w-5 h-5 mr-2" />
-                  Войти
-                </>
-              )}
-            </Button>
-
-            <p className="text-xs text-center text-muted-foreground">
-              Нет аккаунта? Обратитесь к администратору
-            </p>
           </CardContent>
         </Card>
       </motion.div>

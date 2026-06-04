@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { 
-  Plus, Search, Edit, RotateCcw, ChevronLeft, Star, Target, Flame
+  Plus, Search, Edit, RotateCcw, ChevronLeft, Star, Target, Flame, Smartphone
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -80,6 +80,16 @@ export default function AdminParticipants() {
     }
   };
 
+  const resetDevice = async (p) => {
+    if (!confirm(`Сбросить главный телефон для ${p.full_name}?`)) return;
+    await base44.entities.Participant.update(p.id, {
+      device_id: '',
+      device_registered_at: '',
+    });
+    toast.success('Телефон сброшен');
+    await loadData();
+  };
+
   const getMitzvahName = (id) => mitzvahs.find(m => m.id === id)?.name_ru || '—';
 
   const dialogOpen = addDialog || !!editDialog;
@@ -129,8 +139,16 @@ export default function AdminParticipants() {
                   <Badge variant={p.status === 'active' ? 'default' : 'secondary'} className="text-xs">
                     {p.status === 'active' ? 'Актив' : 'Неактив'}
                   </Badge>
+                  {p.device_id && (
+                    <Badge variant="outline" className="hidden sm:inline-flex text-xs">
+                      Телефон
+                    </Badge>
+                  )}
                   <Button variant="ghost" size="icon" onClick={() => openEdit(p)}>
                     <Edit className="w-4 h-4" />
+                  </Button>
+                  <Button variant="ghost" size="icon" onClick={() => resetDevice(p)} title="Сбросить главный телефон">
+                    <Smartphone className="w-4 h-4" />
                   </Button>
                   <Button variant="ghost" size="icon" onClick={() => resetPin(p)}>
                     <RotateCcw className="w-4 h-4" />

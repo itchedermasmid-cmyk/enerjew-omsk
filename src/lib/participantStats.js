@@ -2,15 +2,22 @@ import { base44 } from '@/api/base44Client';
 import {
   DEFAULT_SETTINGS,
   calculateMissionProgress,
+  canSubmitRetrospective,
   getEligibleDatesInRange,
   getOmskDate,
   getProgressLevel,
   isMitzvahEligibleOnDate,
+  parseOmskDateTime,
 } from '@/lib/campaign';
 
 export async function getCampaignSetting(key) {
   const records = await base44.entities.CampaignSettings.filter({ key });
-  return records[0]?.value ?? String(DEFAULT_SETTINGS[key] ?? '');
+  const value = records[0]?.value;
+  // Preserve existing settings, except for the original pre-launch date.
+  if (key === 'campaign_start' && value === '2026-06-07') {
+    return DEFAULT_SETTINGS.campaign_start;
+  }
+  return value ?? String(DEFAULT_SETTINGS[key] ?? '');
 }
 
 function getLastDateToCount(endDate) {
@@ -18,7 +25,7 @@ function getLastDateToCount(endDate) {
   return today < endDate ? today : endDate;
 }
 
-function calculateStreaks(eligibleDates, completedDates) {
+function calculateStreaks(eligibleDates, completedDates, retrospectiveProtectedDates = new Set()) {
   let bestStreak = 0;
   let runningStreak = 0;
 
@@ -31,7 +38,38 @@ function calculateStreaks(eligibleDates, completedDates) {
     }
   });
 
-  return { currentStreak: runningStreak, bestStreak };
+  let currentStreak = 0;
+  for (let index = eligibleDates.length - 1; index >= 0; index -= 1) {
+    const date = eligibleDates[index];
+    if (completedDates.has(date)) {
+      currentStreak += 1;
+    } else if (!retrospectiveProtectedDates.has(date)) {
+      break;
+    }
+  }
+
+  return { currentStreak, bestStreak };
+}
+
+function getRetrospectiveProtectedDates(closurePeriods, mitzvah, eligibleDateSet) {
+  const dates = new Set();
+  const now = new Date();
+
+  closurePeriods.forEach(period => {
+    const end = parseOmskDateTime(period.end_time);
+    if (end >= now || !canSubmitRetrospective(period)) return;
+
+    const current = parseOmskDateTime(period.start_time);
+    while (current <= end) {
+      const date = getOmskDate(current);
+      if (eligibleDateSet.has(date) && isMitzvahEligibleOnDate(mitzvah, date)) {
+        dates.add(date);
+      }
+      current.setDate(current.getDate() + 1);
+    }
+  });
+
+  return dates;
 }
 
 export async function recalculateParticipantStats(participant, mitzvahOverride = null) {
@@ -42,6 +80,7 @@ export async function recalculateParticipantStats(participant, mitzvahOverride =
     mainCheckIns,
     bonusCheckIns,
     adjustments,
+    closurePeriods,
     startDate,
     endDate,
     prizeMissionThreshold,
@@ -53,6 +92,7 @@ export async function recalculateParticipantStats(participant, mitzvahOverride =
     base44.entities.MainCheckIn.filter({ participant_id: participant.id, is_valid: true }),
     base44.entities.BonusCheckIn.filter({ participant_id: participant.id, is_valid: true }),
     base44.entities.BonusStarAdjustment.filter({ participant_id: participant.id }),
+    base44.entities.ClosurePeriod.list('-end_time', 20),
     getCampaignSetting('campaign_start'),
     getCampaignSetting('campaign_end'),
     getCampaignSetting('special_prize_mission_threshold'),
@@ -76,7 +116,8 @@ export async function recalculateParticipantStats(participant, mitzvahOverride =
 
   const completed = completedDates.size;
   const progress = calculateMissionProgress(completed, eligibleDates.length);
-  const { currentStreak, bestStreak } = calculateStreaks(eligibleDates, completedDates);
+  const retrospectiveProtectedDates = getRetrospectiveProtectedDates(closurePeriods, mitzvah, eligibleDateSet);
+  const { currentStreak, bestStreak } = calculateStreaks(eligibleDates, completedDates, retrospectiveProtectedDates);
   const regularBonusStars = bonusCheckIns.reduce((sum, checkIn) => sum + (checkIn.stars_awarded || 1), 0);
   const adjustedBonusStars = adjustments.reduce((sum, adjustment) => sum + (adjustment.stars_change || 0), 0);
   const bonusStars = Math.max(0, regularBonusStars + adjustedBonusStars);
@@ -96,4 +137,3 @@ export async function recalculateParticipantStats(participant, mitzvahOverride =
   await base44.entities.Participant.update(participant.id, update);
   return { ...participant, ...update };
 }
-

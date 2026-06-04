@@ -25,7 +25,10 @@ export default function AdminSettings() {
     // Merge defaults with saved
     const merged = {};
     Object.entries(DEFAULT_SETTINGS).forEach(([key, defaultVal]) => {
-      merged[key] = map[key]?.value ?? String(defaultVal);
+      const savedValue = map[key]?.value;
+      merged[key] = key === 'campaign_start' && savedValue === '2026-06-07'
+        ? String(defaultVal)
+        : savedValue ?? String(defaultVal);
     });
     
     setSettings(merged);

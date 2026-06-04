@@ -2,6 +2,28 @@ import { createContext, useContext, useState, useEffect, useCallback } from 'rea
 import { base44 } from '@/api/base44Client';
 
 const ParticipantAuthContext = createContext(null);
+const DEVICE_KEY = 'enerjew_participant_device';
+
+function getDeviceId() {
+  let deviceId = localStorage.getItem(DEVICE_KEY);
+  if (!deviceId) {
+    deviceId = globalThis.crypto?.randomUUID?.() || `device-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    localStorage.setItem(DEVICE_KEY, deviceId);
+  }
+  return deviceId;
+}
+
+function normalizeName(name) {
+  return name.trim().replace(/\s+/g, ' ');
+}
+
+async function findParticipantByName(name) {
+  const normalized = normalizeName(name);
+  const activeParticipants = await base44.entities.Participant.filter({ status: 'active' });
+  return activeParticipants.find(
+    participant => participant.full_name?.trim().toLowerCase() === normalized.toLowerCase()
+  );
+}
 
 export function ParticipantAuthProvider({ children }) {
   const [participant, setParticipant] = useState(null);
@@ -32,19 +54,60 @@ export function ParticipantAuthProvider({ children }) {
     }
   }, []);
 
-  const login = useCallback(async (participantId, pin) => {
-    const results = await base44.entities.Participant.filter({ id: participantId });
-    if (results.length === 0) throw new Error('Участник не найден');
-    
-    const p = results[0];
+  const login = useCallback(async (nameOrId, pin) => {
+    const byId = await base44.entities.Participant.filter({ id: nameOrId });
+    const p = byId[0] || await findParticipantByName(nameOrId);
+    if (!p) throw new Error('Участник не найден');
+
     if (p.status !== 'active') throw new Error('Аккаунт деактивирован');
     
     // Simple PIN check (in production, use hashing)
     if (p.pin_hash !== String(pin)) throw new Error('Неверный PIN');
+
+    const deviceId = getDeviceId();
+    if (p.device_id && p.device_id !== deviceId) {
+      throw new Error('Этот аккаунт уже привязан к другому телефону. Попросите администратора сбросить телефон.');
+    }
+
+    let updatedParticipant = p;
+    if (!p.device_id) {
+      const update = {
+        device_id: deviceId,
+        device_registered_at: new Date().toISOString(),
+      };
+      updatedParticipant = await base44.entities.Participant.update(p.id, update) || { ...p, ...update };
+    }
     
-    setParticipant(p);
-    localStorage.setItem('participant_session', JSON.stringify({ id: p.id }));
-    return p;
+    setParticipant(updatedParticipant);
+    localStorage.setItem('participant_session', JSON.stringify({ id: updatedParticipant.id }));
+    return updatedParticipant;
+  }, []);
+
+  const registerParticipant = useCallback(async ({ fullName, gender, pin }) => {
+    const normalizedName = normalizeName(fullName);
+    if (normalizedName.length < 2) throw new Error('Введите имя');
+    if (!gender) throw new Error('Выберите мальчик или девочка');
+    if (!/^\d{4,6}$/.test(String(pin))) throw new Error('PIN должен быть из 4-6 цифр');
+
+    const existing = await findParticipantByName(normalizedName);
+    if (existing) throw new Error('Такое имя уже есть. Если это ты, войди с PIN.');
+
+    const created = await base44.entities.Participant.create({
+      full_name: normalizedName,
+      gender,
+      pin_hash: String(pin),
+      status: 'active',
+      mission_selected: false,
+      onboarding_complete: false,
+      progress_level: 'beginner',
+      badges: [],
+      device_id: getDeviceId(),
+      device_registered_at: new Date().toISOString(),
+    });
+
+    setParticipant(created);
+    localStorage.setItem('participant_session', JSON.stringify({ id: created.id }));
+    return created;
   }, []);
 
   const logout = useCallback(() => {
@@ -61,7 +124,7 @@ export function ParticipantAuthProvider({ children }) {
   }, [participant]);
 
   return (
-    <ParticipantAuthContext.Provider value={{ participant, loading, login, logout, refresh, setParticipant }}>
+    <ParticipantAuthContext.Provider value={{ participant, loading, login, registerParticipant, logout, refresh, setParticipant }}>
       {children}
     </ParticipantAuthContext.Provider>
   );

@@ -29,7 +29,7 @@ export default function ParticipantGate({ children }) {
   const activeClosure = isCurrentlyInClosure(closurePeriods);
   if (activeClosure) return <ShabbosScreen closurePeriod={activeClosure} />;
   if (!participant) return <ParticipantLogin />;
-  if (!participant.onboarding_complete || !participant.mission_selected) return <Onboarding />;
+  if (!participant.mission_selected || !participant.main_mitzvah_id) return <Onboarding />;
 
   return children;
 }
