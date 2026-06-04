@@ -1,0 +1,105 @@
+{
+  "name": "Participant",
+  "type": "object",
+  "properties": {
+    "full_name": {
+      "type": "string",
+      "description": "Full name of the participant"
+    },
+    "nickname": {
+      "type": "string",
+      "description": "Optional public display name"
+    },
+    "gender": {
+      "type": "string",
+      "enum": [
+        "male",
+        "female"
+      ],
+      "description": "Gender for eligibility rules"
+    },
+    "pin_hash": {
+      "type": "string",
+      "description": "Hashed PIN for login"
+    },
+    "main_mitzvah_id": {
+      "type": "string",
+      "description": "ID of chosen main mitzvah"
+    },
+    "mission_selected": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether mission has been confirmed"
+    },
+    "mission_progress": {
+      "type": "number",
+      "default": 0,
+      "description": "Mission Progress percentage 0-100"
+    },
+    "completed_eligible": {
+      "type": "number",
+      "default": 0,
+      "description": "Completed eligible opportunities"
+    },
+    "eligible_so_far": {
+      "type": "number",
+      "default": 0,
+      "description": "Eligible opportunities so far"
+    },
+    "bonus_stars": {
+      "type": "number",
+      "default": 0,
+      "description": "Total bonus stars earned"
+    },
+    "current_streak": {
+      "type": "number",
+      "default": 0,
+      "description": "Current consecutive streak"
+    },
+    "best_streak": {
+      "type": "number",
+      "default": 0,
+      "description": "Best streak achieved"
+    },
+    "progress_level": {
+      "type": "string",
+      "enum": [
+        "beginner",
+        "strong_start",
+        "halfway_hero",
+        "trip_qualified",
+        "summer_champion"
+      ],
+      "default": "beginner"
+    },
+    "badges": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "description": "Array of badge IDs earned"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "inactive"
+      ],
+      "default": "active"
+    },
+    "onboarding_complete": {
+      "type": "boolean",
+      "default": false
+    },
+    "special_prize_earned": {
+      "type": "boolean",
+      "default": false
+    }
+  },
+  "required": [
+    "full_name",
+    "gender",
+    "pin_hash"
+  ]
+}

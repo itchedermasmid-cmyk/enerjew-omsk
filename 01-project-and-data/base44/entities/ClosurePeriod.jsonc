@@ -1,0 +1,42 @@
+{
+  "name": "ClosurePeriod",
+  "type": "object",
+  "properties": {
+    "start_time": {
+      "type": "string",
+      "description": "ISO datetime of closure start"
+    },
+    "end_time": {
+      "type": "string",
+      "description": "ISO datetime of closure end"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "shabbos",
+        "holiday",
+        "custom"
+      ],
+      "default": "shabbos"
+    },
+    "name_ru": {
+      "type": "string",
+      "description": "Display name in Russian"
+    },
+    "notes": {
+      "type": "string"
+    },
+    "custom_message": {
+      "type": "string"
+    },
+    "retrospective_deadline": {
+      "type": "string",
+      "description": "ISO datetime deadline for retrospective check-ins"
+    }
+  },
+  "required": [
+    "start_time",
+    "end_time",
+    "type"
+  ]
+}

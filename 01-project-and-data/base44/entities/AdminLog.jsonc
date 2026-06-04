@@ -1,0 +1,33 @@
+{
+  "name": "AdminLog",
+  "type": "object",
+  "properties": {
+    "admin_id": {
+      "type": "string"
+    },
+    "admin_name": {
+      "type": "string"
+    },
+    "participant_id": {
+      "type": "string"
+    },
+    "action": {
+      "type": "string"
+    },
+    "details": {
+      "type": "string"
+    },
+    "stars_change": {
+      "type": "number"
+    },
+    "reason": {
+      "type": "string"
+    },
+    "note": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "action"
+  ]
+}
