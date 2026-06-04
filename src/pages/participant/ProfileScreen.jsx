@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useParticipant } from '@/lib/participantAuth.jsx';
 import { getProgressLevelName } from '@/lib/campaign';
@@ -8,7 +8,7 @@ import ParticipantAvatar, { getAvailableAvatars, getDefaultAvatarId } from '@/co
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Star, Flame, Target, Award, Trophy, LogOut, Loader2, ShieldCheck } from 'lucide-react';
+import { Star, Flame, Target, Award, Trophy, LogOut, Loader2, Camera, Image, X } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function ProfileScreen() {
@@ -16,6 +16,8 @@ export default function ProfileScreen() {
   const [mitzvah, setMitzvah] = useState(null);
   const [badges, setBadges] = useState([]);
   const [savingAvatar, setSavingAvatar] = useState('');
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     if (!participant) return;
@@ -37,16 +39,59 @@ export default function ProfileScreen() {
   const selectedAvatarId = p?.avatar_id || getDefaultAvatarId(p?.gender);
 
   const selectAvatar = async (avatarId) => {
-    if (!p || savingAvatar) return;
+    if (!p || savingAvatar || uploadingPhoto) return;
     setSavingAvatar(avatarId);
     try {
-      await base44.entities.Participant.update(p.id, { avatar_id: avatarId });
+      await base44.entities.Participant.update(p.id, { avatar_id: avatarId, avatar_url: '' });
       await refresh();
       toast.success('Аватар обновлён');
     } catch {
       toast.error('Не удалось сохранить аватар');
     } finally {
       setSavingAvatar('');
+    }
+  };
+
+  const uploadPhoto = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file || !p) return;
+    if (!file.type.startsWith('image/')) {
+      toast.error('Выберите файл-картинку');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Фото должно быть меньше 5 МБ');
+      return;
+    }
+
+    setUploadingPhoto(true);
+    try {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      await base44.entities.Participant.update(p.id, { avatar_url: file_url, avatar_id: '' });
+      await refresh();
+      toast.success('Фото обновлено');
+    } catch {
+      toast.error('Не удалось загрузить фото');
+    } finally {
+      setUploadingPhoto(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  const removePhoto = async () => {
+    if (!p || uploadingPhoto) return;
+    setUploadingPhoto(true);
+    try {
+      await base44.entities.Participant.update(p.id, {
+        avatar_url: '',
+        avatar_id: p.avatar_id || getDefaultAvatarId(p.gender),
+      });
+      await refresh();
+      toast.success('Фото удалено');
+    } catch {
+      toast.error('Не удалось удалить фото');
+    } finally {
+      setUploadingPhoto(false);
     }
   };
 
@@ -73,7 +118,7 @@ export default function ProfileScreen() {
             <div>
               <h3 className="font-semibold">Выбери аватар</h3>
               <p className="text-sm text-muted-foreground mt-1">
-                Он будет виден в приложении и в рейтинге.
+                Он будет виден в приложении и в рейтинге. Можно выбрать картинку или загрузить своё фото.
               </p>
             </div>
             <div className="grid grid-cols-4 gap-3">
@@ -86,7 +131,7 @@ export default function ProfileScreen() {
                     onClick={() => selectAvatar(avatar.id)}
                     disabled={!!savingAvatar}
                     className={`relative rounded-full transition-all ${
-                      selected ? 'ring-2 ring-primary ring-offset-2' : 'hover:scale-105'
+                      selected && !p?.avatar_url ? 'ring-2 ring-primary ring-offset-2' : 'hover:scale-105'
                     }`}
                     aria-label={`Выбрать аватар: ${avatar.label}`}
                   >
@@ -104,10 +149,44 @@ export default function ProfileScreen() {
                 );
               })}
             </div>
-            <div className="border-t pt-4">
+
+            <div className="border-t pt-4 space-y-3">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={uploadPhoto}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploadingPhoto || !!savingAvatar}
+              >
+                {uploadingPhoto ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Camera className="w-4 h-4 mr-2" />
+                )}
+                {uploadingPhoto ? 'Загрузка...' : 'Загрузить своё фото'}
+              </Button>
+              {p?.avatar_url && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="w-full text-muted-foreground"
+                  onClick={removePhoto}
+                  disabled={uploadingPhoto}
+                >
+                  <X className="w-4 h-4 mr-2" />
+                  Убрать фото и выбрать аватар
+                </Button>
+              )}
               <div className="flex items-start gap-2 text-xs text-muted-foreground">
-                <ShieldCheck className="w-4 h-4 text-primary flex-shrink-0" />
-                <p>Личное фото можно будет добавить позже, после подключения защищённых личных аккаунтов.</p>
+                <Image className="w-4 h-4 text-primary flex-shrink-0" />
+                <p>Загружай только подходящее личное фото. Администратор сможет попросить заменить неподходящую картинку.</p>
               </div>
             </div>
           </CardContent>
