@@ -5,44 +5,36 @@ import { Button } from '@/components/ui/button';
 import { Camera, Check } from 'lucide-react';
 import { motion } from 'framer-motion';
 
-// Jewish traditional boy avatars: various hat/beard/kippa styles
+// Jewish traditional boy avatars — DiceBear avataaars v7, correct param names
 const BOY_AVATARS = [
   // Black hat + full beard (Chassidish)
-  'https://api.dicebear.com/7.x/avataaars/svg?seed=Yosef&top[]=Hat&facialHair[]=BeardMajestic&clothe[]=BlazerShirt&backgroundColor=b6e3f4',
+  'https://api.dicebear.com/7.x/avataaars/svg?seed=Yosef&top%5B%5D=Hat&facialHair%5B%5D=BeardMagestic&clothing%5B%5D=BlazerShirt&backgroundColor=b6e3f4',
   // Black hat + light beard
-  'https://api.dicebear.com/7.x/avataaars/svg?seed=Moshe&top[]=Hat&facialHair[]=BeardLight&clothe[]=CollarSweater&backgroundColor=ffdfbf',
+  'https://api.dicebear.com/7.x/avataaars/svg?seed=Moshe&top%5B%5D=Hat&facialHair%5B%5D=BeardLight&clothing%5B%5D=CollarSweater&backgroundColor=ffdfbf',
   // Short curly + medium beard (Yeshiva)
-  'https://api.dicebear.com/7.x/avataaars/svg?seed=Dovid&top[]=ShortHairShortCurly&facialHair[]=BeardMedium&clothe[]=BlazerSweater&backgroundColor=d1d4f9',
+  'https://api.dicebear.com/7.x/avataaars/svg?seed=Dovid&top%5B%5D=ShortHairShortCurly&facialHair%5B%5D=BeardMedium&clothing%5B%5D=BlazerSweater&backgroundColor=d1d4f9',
   // Black hat + medium beard
-  'https://api.dicebear.com/7.x/avataaars/svg?seed=Aron&top[]=Hat&facialHair[]=BeardMedium&clothe[]=Hoodie&backgroundColor=c0aede',
+  'https://api.dicebear.com/7.x/avataaars/svg?seed=Aron&top%5B%5D=Hat&facialHair%5B%5D=BeardMedium&clothing%5B%5D=Hoodie&backgroundColor=c0aede',
   // Short flat + light beard (Modern Orthodox)
-  'https://api.dicebear.com/7.x/avataaars/svg?seed=Levi&top[]=ShortHairShortFlat&facialHair[]=BeardLight&clothe[]=ShirtVNeck&backgroundColor=ffd5dc',
-  // Winter hat + full beard (Breslev style)
-  'https://api.dicebear.com/7.x/avataaars/svg?seed=Nosson&top[]=WinterHat4&facialHair[]=BeardMajestic&clothe[]=ShirtCrewNeck&backgroundColor=b6e3f4',
-  // Black hat + clean shaven (young Yeshiva)
-  'https://api.dicebear.com/7.x/avataaars/svg?seed=Menachem&top[]=Hat&facialHair[]=Blank&clothe[]=BlazerShirt&backgroundColor=d1d4f9',
-  // Short caesar + moustache (Sephardic style)
-  'https://api.dicebear.com/7.x/avataaars/svg?seed=Shlomo&top[]=ShortHairTheCaesar&facialHair[]=MoustacheFancy&clothe[]=BlazerSweater&backgroundColor=ffdfbf',
+  'https://api.dicebear.com/7.x/avataaars/svg?seed=Levi&top%5B%5D=ShortHairShortFlat&facialHair%5B%5D=BeardLight&clothing%5B%5D=ShirtVNeck&backgroundColor=ffd5dc',
+  // Winter hat + full beard (Breslev)
+  'https://api.dicebear.com/7.x/avataaars/svg?seed=Nosson&top%5B%5D=WinterHat4&facialHair%5B%5D=BeardMagestic&clothing%5B%5D=ShirtCrewNeck&backgroundColor=b6e3f4',
+  // Black hat + clean shaven (young bochur)
+  'https://api.dicebear.com/7.x/avataaars/svg?seed=Menachem&top%5B%5D=Hat&facialHair%5B%5D=Blank&clothing%5B%5D=BlazerShirt&backgroundColor=d1d4f9',
+  // Curly short + moustache (Sephardic)
+  'https://api.dicebear.com/7.x/avataaars/svg?seed=Shlomo&top%5B%5D=ShortHairTheCaesar&facialHair%5B%5D=MoustacheFancy&clothing%5B%5D=BlazerSweater&backgroundColor=ffdfbf',
 ];
 
-// Jewish traditional girl avatars: modest clothing, covered/long hair styles
+// Jewish traditional girl avatars — modest clothing, long/covered hair
 const GIRL_AVATARS = [
-  // Long straight + blazer (Bais Yaakov style)
-  'https://api.dicebear.com/7.x/avataaars/svg?seed=Chana&top[]=LongHairStraight&clothe[]=BlazerShirt&backgroundColor=ffd5dc',
-  // Hair bun + collar sweater (Tzniut)
-  'https://api.dicebear.com/7.x/avataaars/svg?seed=Rivka&top[]=LongHairBun&clothe[]=CollarSweater&backgroundColor=d1d4f9',
-  // Long curly + blazer sweater
-  'https://api.dicebear.com/7.x/avataaars/svg?seed=Leah&top[]=LongHairCurly&clothe[]=BlazerSweater&backgroundColor=ffdfbf',
-  // Not too long + collar sweater (Modern Orthodox)
-  'https://api.dicebear.com/7.x/avataaars/svg?seed=Devorah&top[]=LongHairNotTooLong&clothe[]=CollarSweater&backgroundColor=c0aede',
-  // Long straight 2 + blazer
-  'https://api.dicebear.com/7.x/avataaars/svg?seed=Sara&top[]=LongHairStraight2&clothe[]=BlazerShirt&backgroundColor=b6e3f4',
-  // Head covering/tichel style
-  'https://api.dicebear.com/7.x/avataaars/svg?seed=Miriam&top[]=Hijab&clothe[]=BlazerShirt&backgroundColor=ffd5dc',
-  // Bob + modest shirt
-  'https://api.dicebear.com/7.x/avataaars/svg?seed=Esther&top[]=LongHairBob&clothe[]=ShirtVNeck&backgroundColor=d1d4f9',
-  // Long curvy + collar sweater
-  'https://api.dicebear.com/7.x/avataaars/svg?seed=Batsheva&top[]=LongHairCurvy&clothe[]=CollarSweater&backgroundColor=ffdfbf',
+  'https://api.dicebear.com/7.x/avataaars/svg?seed=Chana&top%5B%5D=LongHairStraight&clothing%5B%5D=BlazerShirt&backgroundColor=ffd5dc',
+  'https://api.dicebear.com/7.x/avataaars/svg?seed=Rivka&top%5B%5D=LongHairBun&clothing%5B%5D=CollarSweater&backgroundColor=d1d4f9',
+  'https://api.dicebear.com/7.x/avataaars/svg?seed=Leah&top%5B%5D=LongHairCurly&clothing%5B%5D=BlazerSweater&backgroundColor=ffdfbf',
+  'https://api.dicebear.com/7.x/avataaars/svg?seed=Devorah&top%5B%5D=LongHairNotTooLong&clothing%5B%5D=CollarSweater&backgroundColor=c0aede',
+  'https://api.dicebear.com/7.x/avataaars/svg?seed=Sara&top%5B%5D=LongHairStraight2&clothing%5B%5D=BlazerShirt&backgroundColor=b6e3f4',
+  'https://api.dicebear.com/7.x/avataaars/svg?seed=Miriam&top%5B%5D=Hijab&clothing%5B%5D=BlazerShirt&backgroundColor=ffd5dc',
+  'https://api.dicebear.com/7.x/avataaars/svg?seed=Esther&top%5B%5D=LongHairBob&clothing%5B%5D=ShirtVNeck&backgroundColor=d1d4f9',
+  'https://api.dicebear.com/7.x/avataaars/svg?seed=Batsheva&top%5B%5D=LongHairCurvy&clothing%5B%5D=CollarSweater&backgroundColor=ffdfbf',
 ];
 
 export default function AvatarPickerScreen({ onDone }) {
