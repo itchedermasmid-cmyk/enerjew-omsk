@@ -5,22 +5,44 @@ import { Button } from '@/components/ui/button';
 import { Camera, Check } from 'lucide-react';
 import { motion } from 'framer-motion';
 
+// Jewish traditional boy avatars: various hat/beard/kippa styles
 const BOY_AVATARS = [
-  'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix&backgroundColor=b6e3f4',
-  'https://api.dicebear.com/7.x/avataaars/svg?seed=Jake&backgroundColor=d1d4f9',
-  'https://api.dicebear.com/7.x/avataaars/svg?seed=Brian&backgroundColor=ffdfbf',
-  'https://api.dicebear.com/7.x/avataaars/svg?seed=James&backgroundColor=c0aede',
-  'https://api.dicebear.com/7.x/avataaars/svg?seed=Steve&backgroundColor=ffd5dc',
-  'https://api.dicebear.com/7.x/avataaars/svg?seed=Oscar&backgroundColor=b6e3f4',
+  // Black hat + full beard (Chassidish)
+  'https://api.dicebear.com/7.x/avataaars/svg?seed=Yosef&top[]=Hat&facialHair[]=BeardMajestic&clothe[]=BlazerShirt&backgroundColor=b6e3f4',
+  // Black hat + light beard
+  'https://api.dicebear.com/7.x/avataaars/svg?seed=Moshe&top[]=Hat&facialHair[]=BeardLight&clothe[]=CollarSweater&backgroundColor=ffdfbf',
+  // Short curly + medium beard (Yeshiva)
+  'https://api.dicebear.com/7.x/avataaars/svg?seed=Dovid&top[]=ShortHairShortCurly&facialHair[]=BeardMedium&clothe[]=BlazerSweater&backgroundColor=d1d4f9',
+  // Black hat + medium beard
+  'https://api.dicebear.com/7.x/avataaars/svg?seed=Aron&top[]=Hat&facialHair[]=BeardMedium&clothe[]=Hoodie&backgroundColor=c0aede',
+  // Short flat + light beard (Modern Orthodox)
+  'https://api.dicebear.com/7.x/avataaars/svg?seed=Levi&top[]=ShortHairShortFlat&facialHair[]=BeardLight&clothe[]=ShirtVNeck&backgroundColor=ffd5dc',
+  // Winter hat + full beard (Breslev style)
+  'https://api.dicebear.com/7.x/avataaars/svg?seed=Nosson&top[]=WinterHat4&facialHair[]=BeardMajestic&clothe[]=ShirtCrewNeck&backgroundColor=b6e3f4',
+  // Black hat + clean shaven (young Yeshiva)
+  'https://api.dicebear.com/7.x/avataaars/svg?seed=Menachem&top[]=Hat&facialHair[]=Blank&clothe[]=BlazerShirt&backgroundColor=d1d4f9',
+  // Short caesar + moustache (Sephardic style)
+  'https://api.dicebear.com/7.x/avataaars/svg?seed=Shlomo&top[]=ShortHairTheCaesar&facialHair[]=MoustacheFancy&clothe[]=BlazerSweater&backgroundColor=ffdfbf',
 ];
 
+// Jewish traditional girl avatars: modest clothing, covered/long hair styles
 const GIRL_AVATARS = [
-  'https://api.dicebear.com/7.x/avataaars/svg?seed=Zoe&backgroundColor=ffd5dc',
-  'https://api.dicebear.com/7.x/avataaars/svg?seed=Lily&backgroundColor=d1d4f9',
-  'https://api.dicebear.com/7.x/avataaars/svg?seed=Maria&backgroundColor=ffdfbf',
-  'https://api.dicebear.com/7.x/avataaars/svg?seed=Emma&backgroundColor=c0aede',
-  'https://api.dicebear.com/7.x/avataaars/svg?seed=Sophie&backgroundColor=b6e3f4',
-  'https://api.dicebear.com/7.x/avataaars/svg?seed=Jasmine&backgroundColor=ffd5dc',
+  // Long straight + blazer (Bais Yaakov style)
+  'https://api.dicebear.com/7.x/avataaars/svg?seed=Chana&top[]=LongHairStraight&clothe[]=BlazerShirt&backgroundColor=ffd5dc',
+  // Hair bun + collar sweater (Tzniut)
+  'https://api.dicebear.com/7.x/avataaars/svg?seed=Rivka&top[]=LongHairBun&clothe[]=CollarSweater&backgroundColor=d1d4f9',
+  // Long curly + blazer sweater
+  'https://api.dicebear.com/7.x/avataaars/svg?seed=Leah&top[]=LongHairCurly&clothe[]=BlazerSweater&backgroundColor=ffdfbf',
+  // Not too long + collar sweater (Modern Orthodox)
+  'https://api.dicebear.com/7.x/avataaars/svg?seed=Devorah&top[]=LongHairNotTooLong&clothe[]=CollarSweater&backgroundColor=c0aede',
+  // Long straight 2 + blazer
+  'https://api.dicebear.com/7.x/avataaars/svg?seed=Sara&top[]=LongHairStraight2&clothe[]=BlazerShirt&backgroundColor=b6e3f4',
+  // Head covering/tichel style
+  'https://api.dicebear.com/7.x/avataaars/svg?seed=Miriam&top[]=Hijab&clothe[]=BlazerShirt&backgroundColor=ffd5dc',
+  // Bob + modest shirt
+  'https://api.dicebear.com/7.x/avataaars/svg?seed=Esther&top[]=LongHairBob&clothe[]=ShirtVNeck&backgroundColor=d1d4f9',
+  // Long curvy + collar sweater
+  'https://api.dicebear.com/7.x/avataaars/svg?seed=Batsheva&top[]=LongHairCurvy&clothe[]=CollarSweater&backgroundColor=ffdfbf',
 ];
 
 export default function AvatarPickerScreen({ onDone }) {
