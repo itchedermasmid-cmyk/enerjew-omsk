@@ -6,12 +6,15 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { 
   Users, CheckCircle, Star, Trophy, Award, Gift, AlertCircle,
-  Settings, Calendar, BookOpen, Shield, FileText, Clock, ChevronRight
+  Settings, Calendar, BookOpen, Shield, FileText, Clock, ChevronRight, Sheet, ExternalLink
 } from 'lucide-react';
+import { toast } from 'sonner';
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [exporting, setExporting] = useState(false);
+  const [sheetUrl, setSheetUrl] = useState(null);
   const today = getOmskDate();
 
   useEffect(() => {
@@ -37,6 +40,18 @@ export default function AdminDashboard() {
 
     setStats({ active, todayMain, todayBonus, tripQualified, champions, specialPrize, inactive });
     setLoading(false);
+  };
+
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      const res = await base44.functions.invoke('exportToGoogleSheet', {});
+      setSheetUrl(res.data.url);
+      toast.success('Google Sheet обновлён!');
+    } catch (e) {
+      toast.error('Ошибка экспорта');
+    }
+    setExporting(false);
   };
 
   const statCards = stats ? [
@@ -69,9 +84,20 @@ export default function AdminDashboard() {
             <h1 className="text-lg font-display font-bold">Панель администратора</h1>
             <p className="text-xs text-muted-foreground">EnerJew Omsk</p>
           </div>
-          <Link to="/">
-            <Button variant="outline" size="sm">← Приложение</Button>
-          </Link>
+          <div className="flex items-center gap-2">
+            {sheetUrl && (
+              <a href={sheetUrl} target="_blank" rel="noopener noreferrer">
+                <Button variant="outline" size="sm"><ExternalLink className="w-4 h-4 mr-1" />Таблица</Button>
+              </a>
+            )}
+            <Button variant="outline" size="sm" onClick={handleExport} disabled={exporting}>
+              {exporting ? <div className="w-4 h-4 border-2 border-muted border-t-primary rounded-full animate-spin" /> : <Sheet className="w-4 h-4 mr-1" />}
+              {exporting ? 'Экспорт...' : 'Google Sheet'}
+            </Button>
+            <Link to="/">
+              <Button variant="outline" size="sm">← Приложение</Button>
+            </Link>
+          </div>
         </div>
       </header>
 
