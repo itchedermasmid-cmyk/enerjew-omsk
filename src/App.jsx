@@ -36,6 +36,7 @@ import AdminTorah from '@/pages/admin/AdminTorah';
 import AdminResources from '@/pages/admin/AdminResources';
 import AdminBadges from '@/pages/admin/AdminBadges';
 import AdminLogs from '@/pages/admin/AdminLogs';
+import AdminTodayReport from '@/pages/admin/AdminTodayReport';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -91,6 +92,7 @@ const AuthenticatedApp = () => {
           <Route path="/admin/resources" element={<AdminResources />} />
           <Route path="/admin/badges" element={<AdminBadges />} />
           <Route path="/admin/logs" element={<AdminLogs />} />
+          <Route path="/admin/today" element={<AdminTodayReport />} />
         </Route>
 
         <Route path="*" element={<PageNotFound />} />

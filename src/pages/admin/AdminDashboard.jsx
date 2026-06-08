@@ -50,6 +50,7 @@ export default function AdminDashboard() {
   ] : [];
 
   const menuItems = [
+    { label: 'Отчёт за сегодня', path: '/admin/today', icon: CheckCircle },
     { label: 'Участники', path: '/admin/participants', icon: Users },
     { label: 'Мицвот', path: '/admin/mitzvahs', icon: Shield },
     { label: 'Настройки кампании', path: '/admin/settings', icon: Settings },
